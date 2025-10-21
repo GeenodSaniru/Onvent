@@ -18,9 +18,14 @@ class TicketService {
     return api.get(`/tickets/user/${userId}/bookings`);
   }
   
+  // Get current user's bookings
+  getMyBookings() {
+    return api.get('/tickets/my-bookings');
+  }
+  
   // Cancel a booking
-  cancelBooking(ticketId, userId) {
-    return api.delete(`/tickets/${ticketId}/cancel?userId=${userId}`);
+  cancelBooking(ticketId) {
+    return api.delete(`/tickets/${ticketId}/cancel`);
   }
   
   // Legacy endpoints

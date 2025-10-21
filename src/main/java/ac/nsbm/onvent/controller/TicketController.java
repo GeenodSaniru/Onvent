@@ -7,7 +7,9 @@ import ac.nsbm.onvent.model.dto.AvailabilityResponse;
 import ac.nsbm.onvent.model.dto.BookingRequest;
 import ac.nsbm.onvent.model.dto.BookingResponse;
 import ac.nsbm.onvent.model.entity.Ticket;
+import ac.nsbm.onvent.model.entity.User;
 import ac.nsbm.onvent.service.TicketService;
+import ac.nsbm.onvent.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -23,9 +25,11 @@ import java.util.Map;
 public class TicketController {
 
     private final TicketService ticketService;
+    private final UserService userService;
 
-    public TicketController(TicketService ticketService) {
+    public TicketController(TicketService ticketService, UserService userService) {
         this.ticketService = ticketService;
+        this.userService = userService;
     }
 
     /**
@@ -88,14 +92,48 @@ public class TicketController {
     }
     
     /**
+     * Get current user's bookings
+     * GET /tickets/my-bookings
+     */
+    @GetMapping("/my-bookings")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ResponseEntity<?> getMyBookings() {
+        try {
+            // Get current user from authentication
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String username = authentication.getName();
+            
+            // Find the user by username
+            User currentUser = userService.findByUsernameOrEmail(username)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+            
+            // Get user's bookings
+            List<BookingResponse> bookings = ticketService.getMyBookings(currentUser);
+            return ResponseEntity.ok(bookings);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(createErrorResponse("An error occurred while fetching your bookings: " + e.getMessage()));
+        }
+    }
+    
+    /**
      * Cancel a booking
-     * DELETE /tickets/{ticketId}/cancel?userId={userId}
+     * DELETE /tickets/{ticketId}/cancel
      */
     @DeleteMapping("/{ticketId}/cancel")
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<?> cancelBooking(@PathVariable Long ticketId, @RequestParam Long userId) {
         try {
-            ticketService.cancelBooking(ticketId, userId);
+            // Get current user from authentication
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String username = authentication.getName();
+            
+            // Find the user by username
+            User currentUser = userService.findByUsernameOrEmail(username)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+            
+            // Cancel the booking (the service will verify ownership)
+            ticketService.cancelBooking(ticketId, currentUser.getId());
             Map<String, String> response = new HashMap<>();
             response.put("message", "Booking cancelled successfully");
             return ResponseEntity.ok(response);

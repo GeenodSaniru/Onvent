@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, Outlet, useNavigate } from 'react-router-dom';
+import api from '../services/api';
 
 const Layout = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -7,11 +8,24 @@ const Layout = () => {
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
 
-  // Check if user is logged in (this would typically come from context or localStorage)
+  // Check if user is logged in by verifying with backend
   useEffect(() => {
-    // In a real app, this would check actual auth state
-    const loggedIn = localStorage.getItem('isLoggedIn') === 'true';
-    setIsLoggedIn(loggedIn);
+    const checkAuthStatus = async () => {
+      try {
+        const response = await api.get('/api/auth/me');
+        if (response.status === 200) {
+          setIsLoggedIn(true);
+        } else {
+          setIsLoggedIn(false);
+          localStorage.setItem('isLoggedIn', 'false');
+        }
+      } catch (error) {
+        setIsLoggedIn(false);
+        localStorage.setItem('isLoggedIn', 'false');
+      }
+    };
+
+    checkAuthStatus();
   }, []);
 
   // Close dropdown when clicking outside
@@ -28,12 +42,22 @@ const Layout = () => {
     };
   }, []);
 
-  const handleLogout = () => {
-    // In a real app, this would clear auth tokens, etc.
-    localStorage.setItem('isLoggedIn', 'false');
-    setIsLoggedIn(false);
-    setShowProfileDropdown(false);
-    navigate('/login');
+  const handleLogout = async () => {
+    try {
+      await api.post('/api/auth/logout');
+      // Clear auth state
+      localStorage.setItem('isLoggedIn', 'false');
+      setIsLoggedIn(false);
+      setShowProfileDropdown(false);
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Still clear local state even if backend call fails
+      localStorage.setItem('isLoggedIn', 'false');
+      setIsLoggedIn(false);
+      setShowProfileDropdown(false);
+      navigate('/login');
+    }
   };
 
   return (

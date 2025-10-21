@@ -33,16 +33,49 @@ public class UserController {
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<?> getCurrentUserProfile() {
         try {
-            User createdUser = userService.createUser(user);
-            return new ResponseEntity<>(createdUser, HttpStatus.CREATED);
-        } catch (RuntimeException e) {
-            System.err.println("Error creating user: " + e.getMessage());
-            e.printStackTrace();
-            return new ResponseEntity<>(HttpStatus.CONFLICT); // 409 for conflicts
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String username = authentication.getName();
+            
+            User user = userService.findByUsernameOrEmail(username)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            UserProfileDTO profile = UserProfileDTO.builder()
+                    .id(user.getId())
+                    .username(user.getUsername())
+                    .name(user.getName())
+                    .email(user.getEmail())
+                    .role(user.getRole())
+                    .build();
+
+            return ResponseEntity.ok(profile);
         } catch (Exception e) {
-            System.err.println("Unexpected error creating user: " + e.getMessage());
-            e.printStackTrace();
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(createErrorResponse("An error occurred while fetching profile"));
+        }
+    }
+
+    /**
+     * Update current user's profile
+     * PUT /users/profile
+     */
+    @PutMapping("/profile")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ResponseEntity<?> updateCurrentUserProfile(@Valid @RequestBody UserProfileDTO profileDTO) {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String username = authentication.getName();
+            
+            User user = userService.findByUsernameOrEmail(username)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            UserProfileDTO updatedProfile = userService.updateUserProfile(user.getId(), profileDTO);
+            return ResponseEntity.ok(updatedProfile);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(createErrorResponse(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(createErrorResponse("An error occurred while updating profile"));
         }
     }
 

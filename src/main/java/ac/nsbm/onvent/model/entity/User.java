@@ -77,4 +77,9 @@ public class User {
         tickets.remove(ticket);
         ticket.setUser(null);
     }
+    
+    // Role enum
+    public enum Role {
+        USER, ADMIN
+    }
 }

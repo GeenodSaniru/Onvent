@@ -7,37 +7,21 @@ const UserDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [userId, setUserId] = useState('');
 
   useEffect(() => {
-    // Load userId from localStorage or prompt user
-    const storedUserId = localStorage.getItem('userId');
-    if (storedUserId) {
-      setUserId(storedUserId);
-      fetchBookings(storedUserId);
-    } else {
-      setLoading(false);
-    }
+    fetchMyBookings();
   }, []);
 
-  const fetchBookings = async (uid) => {
+  const fetchMyBookings = async () => {
     try {
       setLoading(true);
       setError('');
-      const response = await ticketService.getUserBookings(uid);
+      const response = await ticketService.getMyBookings();
       setBookings(response.data);
     } catch (err) {
       setError('Failed to load bookings: ' + (err.response?.data?.error || err.message));
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleUserIdSubmit = (e) => {
-    e.preventDefault();
-    if (userId) {
-      localStorage.setItem('userId', userId);
-      fetchBookings(userId);
     }
   };
 
@@ -49,10 +33,11 @@ const UserDashboard = () => {
     try {
       setError('');
       setSuccess('');
-      await ticketService.cancelBooking(ticketId, userId);
+      // In the new implementation, we don't need to pass userId since it's inferred from the session
+      await ticketService.cancelBooking(ticketId);
       setSuccess('Booking cancelled successfully!');
       // Refresh bookings
-      fetchBookings(userId);
+      fetchMyBookings();
     } catch (err) {
       setError('Failed to cancel booking: ' + (err.response?.data?.error || err.message));
     }
@@ -69,44 +54,10 @@ const UserDashboard = () => {
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
 
-  if (!userId && !loading) {
-    return (
-      <div className="dashboard-container">
-        <h2>User Dashboard</h2>
-        <div className="user-id-form">
-          <p>Please enter your User ID to view your bookings:</p>
-          <form onSubmit={handleUserIdSubmit}>
-            <input
-              type="number"
-              placeholder="Enter User ID"
-              value={userId}
-              onChange={(e) => setUserId(e.target.value)}
-              required
-            />
-            <button type="submit">View Bookings</button>
-          </form>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="dashboard-container">
       <div className="dashboard-header">
         <h2>My Bookings Dashboard</h2>
-        <div className="user-info">
-          <span>User ID: {userId}</span>
-          <button 
-            onClick={() => {
-              localStorage.removeItem('userId');
-              setUserId('');
-              setBookings([]);
-            }}
-            className="logout-btn"
-          >
-            Change User
-          </button>
-        </div>
       </div>
 
       {error && <div className="error-message">{error}</div>}
@@ -191,54 +142,6 @@ const UserDashboard = () => {
           margin-bottom: 30px;
           padding-bottom: 20px;
           border-bottom: 2px solid #e0e0e0;
-        }
-
-        .user-info {
-          display: flex;
-          align-items: center;
-          gap: 15px;
-        }
-
-        .logout-btn {
-          padding: 8px 16px;
-          background-color: #6c757d;
-          color: white;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 14px;
-        }
-
-        .logout-btn:hover {
-          background-color: #5a6268;
-        }
-
-        .user-id-form {
-          max-width: 400px;
-          margin: 40px auto;
-          padding: 30px;
-          background: white;
-          border-radius: 8px;
-          box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-
-        .user-id-form input {
-          width: 100%;
-          padding: 10px;
-          margin: 10px 0;
-          border: 1px solid #ddd;
-          border-radius: 4px;
-        }
-
-        .user-id-form button {
-          width: 100%;
-          padding: 12px;
-          background-color: #007bff;
-          color: white;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 16px;
         }
 
         .error-message {

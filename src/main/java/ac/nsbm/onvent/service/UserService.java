@@ -64,7 +64,35 @@ public class UserService {
         }
     }
 
+    public Optional<User> findByUsernameOrEmail(String usernameOrEmail) {
+        return userRepository.findByUsernameOrEmail(usernameOrEmail, usernameOrEmail);
+    }
+
     public User updateUser(Long id, User userDetails) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
+
+        // Check if email is being changed and if it's already taken
+        if (!user.getEmail().equals(profileDTO.getEmail()) && userRepository.existsByEmail(profileDTO.getEmail())) {
+            throw new RuntimeException("Email already exists");
+        }
+
+        user.setName(profileDTO.getName());
+        user.setEmail(profileDTO.getEmail());
+
+        User updatedUser = userRepository.save(user);
+
+        return UserProfileDTO.builder()
+                .id(updatedUser.getId())
+                .username(updatedUser.getUsername())
+                .name(updatedUser.getName())
+                .email(updatedUser.getEmail())
+                .role(updatedUser.getRole())
+                .build();
+    }
+
+    @Transactional
+    public UserProfileDTO updateUserProfile(Long id, UserProfileDTO profileDTO) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
 
