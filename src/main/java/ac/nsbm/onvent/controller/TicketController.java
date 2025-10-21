@@ -10,6 +10,7 @@ import ac.nsbm.onvent.model.entity.Ticket;
 import ac.nsbm.onvent.service.TicketService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -18,7 +19,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/tickets")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
 public class TicketController {
 
     private final TicketService ticketService;
@@ -32,6 +33,7 @@ public class TicketController {
      * POST /tickets/book
      */
     @PostMapping("/book")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<?> bookTicket(@RequestBody BookingRequest request) {
         try {
             BookingResponse response = ticketService.bookTicket(request);
@@ -74,6 +76,7 @@ public class TicketController {
      * GET /tickets/user/{userId}/bookings
      */
     @GetMapping("/user/{userId}/bookings")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<?> getUserBookings(@PathVariable Long userId) {
         try {
             List<BookingResponse> bookings = ticketService.getUserBookings(userId);
@@ -89,6 +92,7 @@ public class TicketController {
      * DELETE /tickets/{ticketId}/cancel?userId={userId}
      */
     @DeleteMapping("/{ticketId}/cancel")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<?> cancelBooking(@PathVariable Long ticketId, @RequestParam Long userId) {
         try {
             ticketService.cancelBooking(ticketId, userId);
@@ -121,6 +125,7 @@ public class TicketController {
     // Legacy endpoints for backwards compatibility
     
     @PostMapping("/create")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Ticket> createTicket(@RequestBody Ticket ticket) {
         try {
             Ticket createdTicket = ticketService.createTicket(ticket);
@@ -131,12 +136,14 @@ public class TicketController {
     }
 
     @GetMapping("/all")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<Ticket>> getAllTickets() {
         List<Ticket> tickets = ticketService.getAllTickets();
         return new ResponseEntity<>(tickets, HttpStatus.OK);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<Ticket> getTicketById(@PathVariable Long id) {
         return ticketService.getTicketById(id)
                 .map(ticket -> new ResponseEntity<>(ticket, HttpStatus.OK))
@@ -144,6 +151,7 @@ public class TicketController {
     }
 
     @PutMapping("/update/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Ticket> updateTicket(@PathVariable Long id, @RequestBody Ticket ticketDetails) {
         try {
             Ticket updatedTicket = ticketService.updateTicket(id, ticketDetails);
@@ -156,6 +164,7 @@ public class TicketController {
     }
 
     @DeleteMapping("/delete/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteTicketById(@PathVariable Long id) {
         try {
             ticketService.deleteTicketById(id);
