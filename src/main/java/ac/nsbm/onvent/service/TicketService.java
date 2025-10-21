@@ -125,6 +125,13 @@ public class TicketService {
     }
     
     /**
+     * Get bookings for the current authenticated user
+     */
+    public List<BookingResponse> getMyBookings(User currentUser) {
+        return getUserBookings(currentUser.getId());
+    }
+    
+    /**
      * Cancel a booking
      */
     @Transactional

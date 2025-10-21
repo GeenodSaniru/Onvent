@@ -1,7 +1,12 @@
 import api from './api';
 
 class UserService {
-  // Create a new user
+  // User registration
+  registerUser(userData) {
+    return api.post('/api/auth/signup', userData);
+  }
+
+  // Create a new user (legacy endpoint)
   createUser(user) {
     return api.post('/users/create', user);
   }

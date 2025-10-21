@@ -5,11 +5,13 @@ import { useNavigate } from 'react-router-dom';
 const UserRegistration = () => {
   const [user, setUser] = useState({
     name: '',
+    username: '',
     email: '',
     password: ''
   });
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -22,17 +24,20 @@ const UserRegistration = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
+    setError('');
+    setMessage('');
+    
     try {
-      const response = await userService.createUser(user);
+      const response = await userService.registerUser(user);
       setMessage('User registered successfully! Redirecting to login...');
-      setUser({ name: '', email: '', password: '' });
+      setUser({ name: '', username: '', email: '', password: '' });
       
       // Redirect to login page after a short delay
       setTimeout(() => {
         navigate('/login');
       }, 2000);
     } catch (error) {
-      setMessage('Error registering user: ' + (error.response?.data?.message || error.message));
+      setError(error.response?.data?.error || 'Error registering user');
     } finally {
       setIsLoading(false);
     }
@@ -42,8 +47,13 @@ const UserRegistration = () => {
     <div className="registration-form">
       <h2>User Registration</h2>
       {message && (
-        <div className={message.includes('successfully') ? 'message' : 'error'}>
+        <div className="message">
           {message}
+        </div>
+      )}
+      {error && (
+        <div className="error">
+          {error}
         </div>
       )}
       <form onSubmit={handleSubmit}>
@@ -57,6 +67,18 @@ const UserRegistration = () => {
             onChange={handleChange}
             required
             placeholder="Enter your full name"
+          />
+        </div>
+        <div className="form-group">
+          <label htmlFor="username">Username:</label>
+          <input
+            type="text"
+            id="username"
+            name="username"
+            value={user.username}
+            onChange={handleChange}
+            required
+            placeholder="Choose a username"
           />
         </div>
         <div className="form-group">
