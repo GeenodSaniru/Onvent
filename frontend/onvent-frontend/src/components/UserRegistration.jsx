@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import userService from '../services/userService';
+import { useNavigate } from 'react-router-dom';
 
 const UserRegistration = () => {
   const [user, setUser] = useState({
@@ -9,6 +10,7 @@ const UserRegistration = () => {
   });
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     setUser({
@@ -22,8 +24,13 @@ const UserRegistration = () => {
     setIsLoading(true);
     try {
       const response = await userService.createUser(user);
-      setMessage('User registered successfully!');
+      setMessage('User registered successfully! Redirecting to login...');
       setUser({ name: '', email: '', password: '' });
+      
+      // Redirect to login page after a short delay
+      setTimeout(() => {
+        navigate('/login');
+      }, 2000);
     } catch (error) {
       setMessage('Error registering user: ' + (error.response?.data?.message || error.message));
     } finally {

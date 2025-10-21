@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const UserLogin = () => {
   const [credentials, setCredentials] = useState({
@@ -7,6 +8,7 @@ const UserLogin = () => {
   });
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     setCredentials({
@@ -20,9 +22,16 @@ const UserLogin = () => {
     setIsLoading(true);
     // In a real application, you would authenticate with your backend
     setTimeout(() => {
-      setMessage('Login functionality would be implemented here');
+      // Simulate successful login
+      localStorage.setItem('isLoggedIn', 'true');
+      setMessage('Login successful! Redirecting...');
       console.log('Login attempt with:', credentials);
       setIsLoading(false);
+      
+      // Redirect to dashboard after a short delay
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 1000);
     }, 1000);
   };
 
@@ -30,7 +39,7 @@ const UserLogin = () => {
     <div className="login-form">
       <h2>User Login</h2>
       {message && (
-        <div className={message.includes('successfully') ? 'message' : 'error'}>
+        <div className={message.includes('successful') ? 'message' : 'error'}>
           {message}
         </div>
       )}

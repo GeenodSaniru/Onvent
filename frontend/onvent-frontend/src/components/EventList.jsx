@@ -5,8 +5,13 @@ const EventList = () => {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
+    // Check if user is logged in
+    const loggedIn = localStorage.getItem('isLoggedIn') === 'true';
+    setIsLoggedIn(loggedIn);
+    
     loadEvents();
   }, []);
 
@@ -58,7 +63,7 @@ const EventList = () => {
                 <th>Price</th>
                 <th>Max Attendees</th>
                 <th>Organizer ID</th>
-                <th>Actions</th>
+                {isLoggedIn && <th>Actions</th>}
               </tr>
             </thead>
             <tbody>
@@ -72,14 +77,16 @@ const EventList = () => {
                   <td>${event.price.toFixed(2)}</td>
                   <td>{event.maxAttendees}</td>
                   <td>{event.organizer?.id || 'N/A'}</td>
-                  <td>
-                    <button 
-                      onClick={() => handleDelete(event.id)}
-                      className="btn-secondary"
-                    >
-                      Delete
-                    </button>
-                  </td>
+                  {isLoggedIn && (
+                    <td>
+                      <button 
+                        onClick={() => handleDelete(event.id)}
+                        className="btn-secondary"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>

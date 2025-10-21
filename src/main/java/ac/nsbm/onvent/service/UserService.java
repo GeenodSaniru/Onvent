@@ -23,20 +23,13 @@ public class UserService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    /**
-     * Register a new user with validation
-     */
-    @Transactional
-    public User registerUser(SignupRequest signupRequest) {
-        // Check if username already exists
-        if (userRepository.existsByUsername(signupRequest.getUsername())) {
-            throw new RuntimeException("Username already exists");
+    public User createUser(User user) {
+        // Check if user with the same email already exists
+        if (userRepository.findByEmail(user.getEmail()).isPresent()) {
+            throw new RuntimeException("User with email " + user.getEmail() + " already exists");
         }
-
-        // Check if email already exists
-        if (userRepository.existsByEmail(signupRequest.getEmail())) {
-            throw new RuntimeException("Email already exists");
-        }
+        return userRepository.save(user);
+    }
 
         // Validate password strength
         validatePassword(signupRequest.getPassword());
@@ -71,13 +64,9 @@ public class UserService {
         }
     }
 
-    /**
-     * Update user profile
-     */
-    @Transactional
-    public UserProfileDTO updateProfile(Long userId, UserProfileDTO profileDTO) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+    public User updateUser(Long id, User userDetails) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
 
         // Check if email is being changed and if it's already taken
         if (!user.getEmail().equals(profileDTO.getEmail()) && userRepository.existsByEmail(profileDTO.getEmail())) {
@@ -98,26 +87,10 @@ public class UserService {
                 .build();
     }
 
-    /**
-     * Get user profile
-     */
-    public UserProfileDTO getUserProfile(Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        return UserProfileDTO.builder()
-                .id(user.getId())
-                .username(user.getUsername())
-                .name(user.getName())
-                .email(user.getEmail())
-                .role(user.getRole())
-                .build();
-    }
-
-    /**
-     * Find user by username or email
-     */
-    public Optional<User> findByUsernameOrEmail(String usernameOrEmail) {
-        return userRepository.findByUsernameOrEmail(usernameOrEmail, usernameOrEmail);
+    public void deleteUserById(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
+        
+        userRepository.delete(user);
     }
 }

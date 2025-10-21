@@ -107,7 +107,15 @@
   font-family: var(--font-family);
   font-size: var(--font-size-base);
   background-color: var(--surface-light);
+  color: var(--text-primary-light);
   transition: var(--transition);
+}
+
+.form-group input::placeholder,
+.form-group textarea::placeholder,
+.form-group select::placeholder {
+  color: var(--text-secondary-light);
+  opacity: 1;
 }
 
 .form-group input:focus,
@@ -116,6 +124,7 @@
   outline: none;
   border-color: var(--primary-color);
   box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+  color: var(--text-primary-light);
 }
 
 /* Button Styles - Using global button styles from index.css */
@@ -394,4 +403,116 @@ a:hover {
 
 .read-the-docs {
   color: #888;
+}
+
+/* Dark mode overrides */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color: var(--text-primary-dark);
+    background-color: var(--background-dark);
+  }
+  
+  button {
+    background-color: var(--primary-color);
+  }
+  
+  .form-group input,
+  .form-group textarea,
+  .form-group select {
+    background-color: var(--surface-dark);
+    color: var(--text-primary-dark);
+  }
+  
+  .form-group input::placeholder,
+  .form-group textarea::placeholder,
+  .form-group select::placeholder {
+    color: var(--text-secondary-dark);
+  }
+  
+  .form-group input:focus,
+  .form-group textarea:focus,
+  .form-group select:focus {
+    color: var(--text-primary-dark);
+  }
+}
+
+/* Profile Dropdown Styles */
+.profile-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.profile-button {
+  background-color: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  padding: 0.75rem 1.25rem;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  transition: var(--transition);
+}
+
+.profile-button:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background-color: var(--surface-light);
+  color: var(--text-primary-light);
+  min-width: 160px;
+  box-shadow: var(--box-shadow-lg);
+  border-radius: var(--border-radius);
+  list-style: none;
+  padding: 0.5rem 0;
+  margin: 0.5rem 0 0 0;
+  z-index: 1000;
+}
+
+.dropdown-menu li {
+  padding: 0;
+  margin: 0;
+}
+
+.dropdown-menu a,
+.dropdown-menu button {
+  display: block;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  text-decoration: none;
+  color: var(--text-primary-light);
+  background: none;
+  border: none;
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.dropdown-menu a:hover,
+.dropdown-menu button:hover {
+  background-color: var(--background-light);
+  color: var(--primary-color);
+}
+
+/* Dark mode dropdown adjustments */
+@media (prefers-color-scheme: dark) {
+  .dropdown-menu {
+    background-color: var(--surface-dark);
+  }
+  
+  .dropdown-menu a,
+  .dropdown-menu button {
+    color: var(--text-primary-dark);
+  }
+  
+  .dropdown-menu a:hover,
+  .dropdown-menu button:hover {
+    background-color: var(--background-dark);
+  }
 }

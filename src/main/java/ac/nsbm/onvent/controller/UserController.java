@@ -33,37 +33,30 @@ public class UserController {
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<?> getCurrentUserProfile() {
         try {
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            if (authentication == null || !authentication.isAuthenticated()) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(createErrorResponse("Not authenticated"));
-            }
-
-            String username = authentication.getName();
-            User user = userService.findByUsernameOrEmail(username)
-                    .orElseThrow(() -> new RuntimeException("User not found"));
-
-            UserProfileDTO profileDTO = userService.getUserProfile(user.getId());
-            return ResponseEntity.ok(profileDTO);
+            User createdUser = userService.createUser(user);
+            return new ResponseEntity<>(createdUser, HttpStatus.CREATED);
+        } catch (RuntimeException e) {
+            System.err.println("Error creating user: " + e.getMessage());
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.CONFLICT); // 409 for conflicts
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(createErrorResponse("An error occurred while fetching profile"));
+            System.err.println("Unexpected error creating user: " + e.getMessage());
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
-    /**
-     * Update current user's profile
-     * PUT /users/profile
-     */
-    @PutMapping("/profile")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
-    public ResponseEntity<?> updateCurrentUserProfile(@Valid @RequestBody UserProfileDTO profileDTO) {
+    @GetMapping("/all")
+    public ResponseEntity<List<User>> getAllUsers() {
         try {
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            if (authentication == null || !authentication.isAuthenticated()) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(createErrorResponse("Not authenticated"));
-            }
+            List<User> users = userService.getAllUsers();
+            return new ResponseEntity<>(users, HttpStatus.OK);
+        } catch (Exception e) {
+            System.err.println("Error getting all users: " + e.getMessage());
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 
             String username = authentication.getName();
             User user = userService.findByUsernameOrEmail(username)
