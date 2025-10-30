@@ -12,7 +12,7 @@ import ac.nsbm.onvent.model.entity.User;
 import ac.nsbm.onvent.repository.EventRepository;
 import ac.nsbm.onvent.repository.TicketRepository;
 import ac.nsbm.onvent.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,23 +23,14 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class TicketService {
 
     private final TicketRepository ticketRepository;
     private final EventRepository eventRepository;
     private final UserRepository userRepository;
-    
-    @Autowired
-    private EmailService emailService;
-    
-    @Autowired
-    private PdfService pdfService;
-
-    public TicketService(TicketRepository ticketRepository, EventRepository eventRepository, UserRepository userRepository) {
-        this.ticketRepository = ticketRepository;
-        this.eventRepository = eventRepository;
-        this.userRepository = userRepository;
-    }
+    private final EmailService emailService;
+    private final PdfTicketService pdfTicketService;
 
     /**
      * Book tickets for an event with seat validation
@@ -91,6 +82,12 @@ public class TicketService {
         ticket.setStatus(Ticket.TicketStatus.ACTIVE);
         
         ticket = ticketRepository.save(ticket);
+        
+        // Generate PDF ticket
+        byte[] pdfTicket = pdfTicketService.generateTicketPdf(ticket);
+        
+        // Send email confirmation
+        sendBookingConfirmationEmail(user, ticket, pdfTicket);
         
         // Build response
         BookingResponse response = buildBookingResponse(ticket, availableSeats - numberOfTickets);
@@ -218,6 +215,29 @@ public class TicketService {
         response.setStatus(ticket.getStatus().name());
         response.setAvailableSeats(availableSeats);
         return response;
+    }
+
+    /**
+     * Send booking confirmation email with PDF attachment
+     */
+    private void sendBookingConfirmationEmail(User user, Ticket ticket, byte[] pdfTicket) {
+        String subject = "Booking Confirmation - " + ticket.getEvent().getTitle();
+        
+        String htmlContent = "<h2>Booking Confirmation</h2>" +
+                "<p>Dear " + user.getName() + ",</p>" +
+                "<p>Your booking for the event <strong>" + ticket.getEvent().getTitle() + "</strong> has been confirmed.</p>" +
+                "<p><strong>Booking Details:</strong></p>" +
+                "<ul>" +
+                "<li>Ticket ID: " + ticket.getId() + "</li>" +
+                "<li>Event: " + ticket.getEvent().getTitle() + "</li>" +
+                "<li>Date: " + ticket.getEvent().getEventDate() + "</li>" +
+                "<li>Location: " + ticket.getEvent().getLocation() + "</li>" +
+                "<li>Ticket Code: " + ticket.getTicketCode() + "</li>" +
+                "</ul>" +
+                "<p>Please find your ticket attached as a PDF file.</p>" +
+                "<p>Thank you for using Onvent!</p>";
+        
+        emailService.sendBookingConfirmation(user.getEmail(), subject, htmlContent, pdfTicket);
     }
 
     // Legacy methods for backwards compatibility
