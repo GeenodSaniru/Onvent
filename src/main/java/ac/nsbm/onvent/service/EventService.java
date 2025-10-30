@@ -1,6 +1,8 @@
 package ac.nsbm.onvent.service;
 
 import ac.nsbm.onvent.model.entity.Event;
+import ac.nsbm.onvent.model.entity.User;
+import ac.nsbm.onvent.model.dto.EventCreateRequest;
 import ac.nsbm.onvent.repository.EventRepository;
 import org.springframework.stereotype.Service;
 
@@ -17,6 +19,19 @@ public class EventService {
     }
 
     public Event createEvent(Event event) {
+        return eventRepository.save(event);
+    }
+
+    public Event createEventForUser(EventCreateRequest eventRequest, User user) {
+        Event event = new Event();
+        event.setTitle(eventRequest.getTitle());
+        event.setDescription(eventRequest.getDescription());
+        event.setLocation(eventRequest.getLocation());
+        event.setEventDate(eventRequest.getEventDate());
+        event.setPrice(eventRequest.getPrice());
+        event.setMaxAttendees(eventRequest.getMaxAttendees());
+        event.setOrganizer(user);
+        
         return eventRepository.save(event);
     }
 

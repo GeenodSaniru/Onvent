@@ -2,6 +2,7 @@ package ac.nsbm.onvent.controller;
 
 import ac.nsbm.onvent.model.dto.UserProfileDTO;
 import ac.nsbm.onvent.model.entity.User;
+import ac.nsbm.onvent.model.entity.Role;
 import ac.nsbm.onvent.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -131,14 +132,15 @@ public class UserController {
             
             UserProfileDTO updatedProfile = userService.updateUserProfile(id, profileDTO);
             
-            // Convert back to User for the response
-            User updatedUser = new User(
-                    updatedProfile.getUsername(),
-                    updatedProfile.getName(),
-                    updatedProfile.getEmail(),
-                    ""); // Password is not returned for security reasons
-            updatedUser.setId(updatedProfile.getId());
-            updatedUser.setRole(updatedProfile.getRole());
+            // Convert back to User for the response using builder
+            User updatedUser = User.builder()
+                    .username(updatedProfile.getUsername())
+                    .name(updatedProfile.getName())
+                    .email(updatedProfile.getEmail())
+                    .password("") // Password is not returned for security reasons
+                    .role(updatedProfile.getRole())
+                    .id(updatedProfile.getId())
+                    .build();
             
             return new ResponseEntity<>(updatedUser, HttpStatus.OK);
         } catch (RuntimeException e) {
@@ -155,6 +157,24 @@ public class UserController {
     @PutMapping("/{id}/assign-admin")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> assignAdminRole(@PathVariable Long id) {
+        try {
+            UserProfileDTO updatedProfile = userService.assignAdminRole(id);
+            return ResponseEntity.ok(updatedProfile);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(createErrorResponse(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(createErrorResponse("An error occurred while assigning admin role"));
+        }
+    }
+
+    /**
+     * Assign admin role to a user (temporary endpoint for initial setup)
+     * PUT /users/{id}/assign-admin-temp
+     */
+    @PutMapping("/{id}/assign-admin-temp")
+    public ResponseEntity<?> assignAdminRoleTemp(@PathVariable Long id) {
         try {
             UserProfileDTO updatedProfile = userService.assignAdminRole(id);
             return ResponseEntity.ok(updatedProfile);
@@ -195,6 +215,25 @@ public class UserController {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         } catch (Exception e) {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * Admin can delete any user
+     * DELETE /users/admin/delete/{id}
+     */
+    @DeleteMapping("/admin/delete/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> adminDeleteUser(@PathVariable Long id) {
+        try {
+            userService.deleteUserById(id);
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(createErrorResponse(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(createErrorResponse("An error occurred while deleting the user: " + e.getMessage()));
         }
     }
 

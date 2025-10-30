@@ -14,6 +14,9 @@ import AdminDashboard from './components/AdminDashboard';
 import UserHome from './components/UserHome';
 import ApiTest from './components/ApiTest';
 import FullCRUDTest from './components/FullCRUDTest';
+import EventBooking from './components/EventBooking';
+import UserProfile from './components/UserProfile';
+import ProtectedRoute from './components/ProtectedRoute';
 import './App.css';
 
 function App() {
@@ -29,10 +32,16 @@ function App() {
           <Route path="events/create" element={<EventCreation />} />
           <Route path="events" element={<EventList />} />
           <Route path="tickets/book" element={<TicketBooking />} />
+          <Route path="tickets/book/:eventId" element={<EventBooking />} />
           <Route path="tickets" element={<TicketView />} />
           <Route path="dashboard" element={<UserDashboard />} />
           <Route path="admin/dashboard" element={<AdminDashboard />} />
           <Route path="user/home" element={<UserHome />} />
+          <Route path="user/profile" element={
+            <ProtectedRoute>
+              <UserProfile />
+            </ProtectedRoute>
+          } />
           <Route path="test" element={<ApiTest />} />
           <Route path="crud-test" element={<FullCRUDTest />} />
         </Route>

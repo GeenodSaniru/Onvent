@@ -9,40 +9,63 @@ const Layout = () => {
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
 
+  // Function to check auth status
+  const checkAuthStatus = async () => {
+    try {
+      // First check localStorage for quick initial state
+      const storedLoggedIn = localStorage.getItem('isLoggedIn');
+      const storedRole = localStorage.getItem('userRole');
+      
+      if (storedLoggedIn === 'true') {
+        setIsLoggedIn(true);
+        setUserRole(storedRole);
+      }
+      
+      // Then verify with backend
+      const response = await api.get('/api/auth/me');
+      if (response.status === 200) {
+        setIsLoggedIn(true);
+        setUserRole(response.data.role);
+        localStorage.setItem('userRole', response.data.role);
+        localStorage.setItem('isLoggedIn', 'true');
+      } else {
+        setIsLoggedIn(false);
+        setUserRole(null);
+        localStorage.setItem('isLoggedIn', 'false');
+        localStorage.removeItem('userRole');
+      }
+    } catch (error) {
+      // Only set as logged out if we get a 401 or 403, otherwise keep current state
+      if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+        setIsLoggedIn(false);
+        setUserRole(null);
+        localStorage.setItem('isLoggedIn', 'false');
+        localStorage.removeItem('userRole');
+      }
+      // For network errors or other issues, we don't change the auth state
+    }
+  };
+
   // Check if user is logged in by verifying with backend
   useEffect(() => {
-    const checkAuthStatus = async () => {
-      try {
-        const response = await api.get('/api/auth/me');
-        if (response.status === 200) {
-          setIsLoggedIn(true);
-          setUserRole(response.data.role);
-          localStorage.setItem('userRole', response.data.role);
-          localStorage.setItem('isLoggedIn', 'true');
-        } else {
-          setIsLoggedIn(false);
-          setUserRole(null);
-          localStorage.setItem('isLoggedIn', 'false');
-          localStorage.removeItem('userRole');
-        }
-      } catch (error) {
-        // Only set as logged out if we get a 401 or 403, otherwise keep current state
-        if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-          setIsLoggedIn(false);
-          setUserRole(null);
-          localStorage.setItem('isLoggedIn', 'false');
-          localStorage.removeItem('userRole');
-        }
-        // For network errors or other issues, we don't change the auth state
-      }
-    };
-
     checkAuthStatus();
     
     // Set up periodic check every 5 minutes
     const interval = setInterval(checkAuthStatus, 300000);
     
-    return () => clearInterval(interval);
+    // Listen for auth state changes
+    const handleAuthStateChange = (event) => {
+      const { isLoggedIn: newIsLoggedIn, userRole: newUserRole } = event.detail;
+      setIsLoggedIn(newIsLoggedIn);
+      setUserRole(newUserRole);
+    };
+    
+    window.addEventListener('authStateChange', handleAuthStateChange);
+    
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('authStateChange', handleAuthStateChange);
+    };
   }, []);
 
   // Close dropdown when clicking outside
@@ -68,6 +91,12 @@ const Layout = () => {
       setIsLoggedIn(false);
       setUserRole(null);
       setShowProfileDropdown(false);
+      
+      // Create a custom event to notify other components of logout
+      window.dispatchEvent(new CustomEvent('authStateChange', { 
+        detail: { isLoggedIn: false, userRole: null } 
+      }));
+      
       navigate('/login');
     } catch (error) {
       console.error('Logout error:', error);
@@ -77,6 +106,12 @@ const Layout = () => {
       setIsLoggedIn(false);
       setUserRole(null);
       setShowProfileDropdown(false);
+      
+      // Create a custom event to notify other components of logout
+      window.dispatchEvent(new CustomEvent('authStateChange', { 
+        detail: { isLoggedIn: false, userRole: null } 
+      }));
+      
       navigate('/login');
     }
   };
@@ -96,35 +131,24 @@ const Layout = () => {
               <li><Link to="/login">Login</Link></li>
             </>
           ) : (
-            <>
-              {userRole === 'ADMIN' ? (
-                <>
-                  <li><Link to="/admin/dashboard">Admin Dashboard</Link></li>
-                  <li><Link to="/events/create">Create Event</Link></li>
-                  <li><Link to="/user-management">Manage Users</Link></li>
-                </>
-              ) : (
-                <li><Link to="/user/home">My Dashboard</Link></li>
+            <li className="profile-dropdown" ref={dropdownRef}>
+              <button 
+                className="profile-button"
+                onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+              >
+                Profile ▼
+              </button>
+              {showProfileDropdown && (
+                <ul className="dropdown-menu">
+                  <li>
+                    <Link to="/user/profile">
+                      My Profile
+                    </Link>
+                  </li>
+                  <li><button onClick={handleLogout}>Logout</button></li>
+                </ul>
               )}
-              <li className="profile-dropdown" ref={dropdownRef}>
-                <button 
-                  className="profile-button"
-                  onClick={() => setShowProfileDropdown(!showProfileDropdown)}
-                >
-                  Profile ▼
-                </button>
-                {showProfileDropdown && (
-                  <ul className="dropdown-menu">
-                    <li>
-                      <Link to={userRole === 'ADMIN' ? "/admin/dashboard" : "/user/home"}>
-                        My Profile
-                      </Link>
-                    </li>
-                    <li><button onClick={handleLogout}>Sign Out</button></li>
-                  </ul>
-                )}
-              </li>
-            </>
+            </li>
           )}
         </ul>
       </nav>

@@ -24,6 +24,10 @@ const UserHome = () => {
             <span className="nav-icon">📋</span>
             <span className="nav-text">My Bookings</span>
           </Link>
+          <Link to="/user/profile" className="nav-link">
+            <span className="nav-icon">👤</span>
+            <span className="nav-text">My Profile</span>
+          </Link>
         </div>
       </div>
 
@@ -40,7 +44,7 @@ const UserHome = () => {
         </div>
         <div className="feature-card">
           <h3>Profile Settings</h3>
-          <p>Update your personal information</p>
+          <p>Update your personal information and password</p>
         </div>
       </div>
 

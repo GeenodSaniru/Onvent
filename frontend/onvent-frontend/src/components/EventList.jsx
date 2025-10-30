@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import eventService from '../services/eventService';
 
 const EventList = () => {
@@ -6,11 +7,15 @@ const EventList = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userRole, setUserRole] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    // Check if user is logged in
+    // Check if user is logged in and get user role
     const loggedIn = localStorage.getItem('isLoggedIn') === 'true';
+    const role = localStorage.getItem('userRole');
     setIsLoggedIn(loggedIn);
+    setUserRole(role);
     
     loadEvents();
   }, []);
@@ -39,6 +44,15 @@ const EventList = () => {
     }
   };
 
+  const handleBookEvent = async (eventId) => {
+    try {
+      // Redirect to booking page with event ID
+      navigate(`/tickets/book/${eventId}`);
+    } catch (err) {
+      setError('Error booking event: ' + (err.response?.data?.message || err.message));
+    }
+  };
+
   if (loading) return <div className="message">Loading events...</div>;
   if (error) return <div className="error">{error}</div>;
 
@@ -62,8 +76,8 @@ const EventList = () => {
                 <th>Date</th>
                 <th>Price</th>
                 <th>Max Attendees</th>
-                <th>Organizer ID</th>
-                {isLoggedIn && <th>Actions</th>}
+                <th>Organizer</th>
+                {(isLoggedIn || userRole === 'ADMIN') && <th>Actions</th>}
               </tr>
             </thead>
             <tbody>
@@ -76,15 +90,24 @@ const EventList = () => {
                   <td>{new Date(event.eventDate).toLocaleString()}</td>
                   <td>${event.price.toFixed(2)}</td>
                   <td>{event.maxAttendees}</td>
-                  <td>{event.organizer?.id || 'N/A'}</td>
-                  {isLoggedIn && (
+                  <td>{event.organizer?.username || 'N/A'}</td>
+                  {(isLoggedIn || userRole === 'ADMIN') && (
                     <td>
                       <button 
-                        onClick={() => handleDelete(event.id)}
-                        className="btn-secondary"
+                        onClick={() => handleBookEvent(event.id)}
+                        className="btn-primary"
                       >
-                        Delete
+                        Book
                       </button>
+                      {userRole === 'ADMIN' && (
+                        <button 
+                          onClick={() => handleDelete(event.id)}
+                          className="btn-secondary"
+                          style={{ marginLeft: '10px' }}
+                        >
+                          Delete
+                        </button>
+                      )}
                     </td>
                   )}
                 </tr>
