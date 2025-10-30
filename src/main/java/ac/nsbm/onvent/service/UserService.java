@@ -2,6 +2,7 @@ package ac.nsbm.onvent.service;
 
 import ac.nsbm.onvent.model.dto.SignupRequest;
 import ac.nsbm.onvent.model.dto.UserProfileDTO;
+import ac.nsbm.onvent.model.entity.Role;
 import ac.nsbm.onvent.model.entity.User;
 import ac.nsbm.onvent.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -48,14 +49,14 @@ public class UserService {
         // Validate password strength
         validatePassword(signupRequest.getPassword());
 
-        // Create new user
-        User user = new User(
-                signupRequest.getUsername(),
-                signupRequest.getName(),
-                signupRequest.getEmail(),
-                passwordEncoder.encode(signupRequest.getPassword())
-        );
-        user.setRole(signupRequest.getRole() != null ? signupRequest.getRole() : User.Role.USER);
+        // Create new user using builder pattern
+        User user = User.builder()
+                .username(signupRequest.getUsername())
+                .name(signupRequest.getName())
+                .email(signupRequest.getEmail())
+                .password(passwordEncoder.encode(signupRequest.getPassword()))
+                .role(signupRequest.getRole() != null ? signupRequest.getRole() : Role.USER)
+                .build();
 
         return userRepository.save(user);
     }
@@ -125,7 +126,7 @@ public class UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
 
-        user.setRole(User.Role.ADMIN);
+        user.setRole(Role.ADMIN);
         User updatedUser = userRepository.save(user);
 
         return UserProfileDTO.builder()
@@ -148,7 +149,7 @@ public class UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
 
-        user.setRole(User.Role.USER);
+        user.setRole(Role.USER);
         User updatedUser = userRepository.save(user);
 
         return UserProfileDTO.builder()

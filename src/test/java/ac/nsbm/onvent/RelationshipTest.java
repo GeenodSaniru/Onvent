@@ -1,5 +1,6 @@
 package ac.nsbm.onvent;
 
+import ac.nsbm.onvent.model.entity.Role;
 import ac.nsbm.onvent.model.entity.User;
 import ac.nsbm.onvent.model.entity.Event;
 import ac.nsbm.onvent.model.entity.Ticket;
@@ -38,7 +39,7 @@ public class RelationshipTest {
         user.setName("Test User");
         user.setEmail("test@example.com");
         user.setPassword("password");
-        user.setRole(User.Role.USER);
+        user.setRole(Role.USER);
         user = userRepository.save(user);
         
         // Create an event

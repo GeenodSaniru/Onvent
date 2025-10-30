@@ -86,15 +86,20 @@ public class TicketService {
         // Generate PDF ticket
         byte[] pdfTicket = pdfTicketService.generateTicketPdf(ticket);
         
-        // Send email confirmation
-        sendBookingConfirmationEmail(user, ticket, pdfTicket);
-        
         // Build response
         BookingResponse response = buildBookingResponse(ticket, availableSeats - numberOfTickets);
         
         // Send booking confirmation email
         try {
-            emailService.sendBookingConfirmation(response, user.getEmail());
+            String subject = "Booking Confirmation - " + event.getTitle();
+            String text = "<h1>Booking Confirmation</h1>" +
+                         "<p>Dear " + user.getName() + ",</p>" +
+                         "<p>Your ticket for <strong>" + event.getTitle() + "</strong> has been confirmed.</p>" +
+                         "<p><strong>Event Date:</strong> " + event.getEventDate() + "</p>" +
+                         "<p><strong>Ticket Code:</strong> " + ticket.getTicketCode() + "</p>" +
+                         "<p>Thank you for using our service!</p>";
+            
+            emailService.sendBookingConfirmation(user.getEmail(), subject, text, pdfTicket);
         } catch (Exception e) {
             // Log the error but don't fail the booking process
             System.err.println("Failed to send booking confirmation email: " + e.getMessage());
@@ -194,85 +199,26 @@ public class TicketService {
         BookingResponse response = buildBookingResponse(ticket, availableSeats);
         
         // Generate PDF
-        return pdfService.generateTicketPdf(response);
+        return pdfTicketService.generateTicketPdf(ticket);
     }
     
     /**
-     * Helper method to build booking response
+     * Build a BookingResponse DTO from a Ticket entity
      */
-    private BookingResponse buildBookingResponse(Ticket ticket, int availableSeats) {
-        BookingResponse response = new BookingResponse();
-        response.setTicketId(ticket.getId());
-        response.setTicketCode(ticket.getTicketCode());
-        response.setUserId(ticket.getUser().getId());
-        response.setUserName(ticket.getUser().getName());
-        response.setEventId(ticket.getEvent().getId());
-        response.setEventTitle(ticket.getEvent().getTitle());
-        response.setEventLocation(ticket.getEvent().getLocation());
-        response.setEventDate(ticket.getEvent().getEventDate());
-        response.setEventPrice(ticket.getEvent().getPrice());
-        response.setPurchaseDate(ticket.getPurchaseDate());
-        response.setStatus(ticket.getStatus().name());
-        response.setAvailableSeats(availableSeats);
-        return response;
-    }
-
-    /**
-     * Send booking confirmation email with PDF attachment
-     */
-    private void sendBookingConfirmationEmail(User user, Ticket ticket, byte[] pdfTicket) {
-        String subject = "Booking Confirmation - " + ticket.getEvent().getTitle();
-        
-        String htmlContent = "<h2>Booking Confirmation</h2>" +
-                "<p>Dear " + user.getName() + ",</p>" +
-                "<p>Your booking for the event <strong>" + ticket.getEvent().getTitle() + "</strong> has been confirmed.</p>" +
-                "<p><strong>Booking Details:</strong></p>" +
-                "<ul>" +
-                "<li>Ticket ID: " + ticket.getId() + "</li>" +
-                "<li>Event: " + ticket.getEvent().getTitle() + "</li>" +
-                "<li>Date: " + ticket.getEvent().getEventDate() + "</li>" +
-                "<li>Location: " + ticket.getEvent().getLocation() + "</li>" +
-                "<li>Ticket Code: " + ticket.getTicketCode() + "</li>" +
-                "</ul>" +
-                "<p>Please find your ticket attached as a PDF file.</p>" +
-                "<p>Thank you for using Onvent!</p>";
-        
-        emailService.sendBookingConfirmation(user.getEmail(), subject, htmlContent, pdfTicket);
-    }
-
-    // Legacy methods for backwards compatibility
-    
-    public Ticket createTicket(Ticket ticket) {
-        if (ticket.getStatus() == null) {
-            ticket.setStatus(Ticket.TicketStatus.ACTIVE);
-        }
-        return ticketRepository.save(ticket);
-    }
-
-    public List<Ticket> getAllTickets() {
-        return ticketRepository.findAll();
-    }
-
-    public Optional<Ticket> getTicketById(Long id) {
-        return ticketRepository.findById(id);
-    }
-
-    public Ticket updateTicket(Long id, Ticket ticketDetails) {
-        Ticket ticket = ticketRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Ticket not found"));
-
-        ticket.setPurchaseDate(ticketDetails.getPurchaseDate());
-        ticket.setTicketCode(ticketDetails.getTicketCode());
-        ticket.setUser(ticketDetails.getUser());
-        ticket.setEvent(ticketDetails.getEvent());
-
-        return ticketRepository.save(ticket);
-    }
-
-    public void deleteTicketById(Long id) {
-        Ticket ticket = ticketRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Ticket not found"));
-        
-        ticketRepository.delete(ticket);
+    private BookingResponse buildBookingResponse(Ticket ticket, int remainingSeats) {
+        return BookingResponse.builder()
+                .id(ticket.getId())
+                .ticketCode(ticket.getTicketCode())
+                .purchaseDate(ticket.getPurchaseDate())
+                .status(ticket.getStatus().name())
+                .userId(ticket.getUser().getId())
+                .userName(ticket.getUser().getName())
+                .userEmail(ticket.getUser().getEmail())
+                .eventId(ticket.getEvent().getId())
+                .eventTitle(ticket.getEvent().getTitle())
+                .eventDate(ticket.getEvent().getEventDate())
+                .venue(ticket.getEvent().getLocation()) // Use getLocation() instead of getVenue()
+                .remainingSeats(remainingSeats)
+                .build();
     }
 }

@@ -14,20 +14,21 @@ public class PdfServiceTest {
 
     @Test
     public void testGenerateTicketPdf() {
-        // Create a sample booking response
-        BookingResponse booking = new BookingResponse();
-        booking.setTicketId(1L);
-        booking.setTicketCode("TKT-ABC123");
-        booking.setUserId(1L);
-        booking.setUserName("John Doe");
-        booking.setEventId(1L);
-        booking.setEventTitle("Test Event");
-        booking.setEventLocation("Test Venue");
-        booking.setEventDate(LocalDateTime.now().plusDays(7));
-        booking.setEventPrice(50.0);
-        booking.setPurchaseDate(LocalDateTime.now());
-        booking.setStatus("ACTIVE");
-        booking.setAvailableSeats(99);
+        // Create a sample booking response using builder
+        BookingResponse booking = BookingResponse.builder()
+                .id(1L)
+                .ticketCode("TKT-ABC123")
+                .userId(1L)
+                .userName("John Doe")
+                .userEmail("john.doe@example.com")
+                .eventId(1L)
+                .eventTitle("Test Event")
+                .venue("Test Venue")
+                .eventDate(LocalDateTime.now().plusDays(7))
+                .purchaseDate(LocalDateTime.now())
+                .status("ACTIVE")
+                .remainingSeats(99)
+                .build();
 
         // Create PDF service
         PdfService pdfService = new PdfService();

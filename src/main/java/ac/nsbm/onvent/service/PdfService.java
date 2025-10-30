@@ -50,7 +50,7 @@ public class PdfService {
             eventTable.addCell(createCell(booking.getEventDate().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))));
 
             eventTable.addCell(createCell("Venue"));
-            eventTable.addCell(createCell(booking.getEventLocation()));
+            eventTable.addCell(createCell(booking.getVenue()));
 
             eventTable.addCell(createCell("Organized by"));
             eventTable.addCell(createCell("Onvent"));

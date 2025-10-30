@@ -132,13 +132,14 @@ public class UserController {
             UserProfileDTO updatedProfile = userService.updateUserProfile(id, profileDTO);
             
             // Convert back to User for the response
-            User updatedUser = new User(
-                    updatedProfile.getUsername(),
-                    updatedProfile.getName(),
-                    updatedProfile.getEmail(),
-                    ""); // Password is not returned for security reasons
+            User updatedUser = User.builder()
+                    .username(updatedProfile.getUsername())
+                    .name(updatedProfile.getName())
+                    .email(updatedProfile.getEmail())
+                    .password("") // Password is not returned for security reasons
+                    .role(updatedProfile.getRole())
+                    .build();
             updatedUser.setId(updatedProfile.getId());
-            updatedUser.setRole(updatedProfile.getRole());
             
             return new ResponseEntity<>(updatedUser, HttpStatus.OK);
         } catch (RuntimeException e) {

@@ -57,6 +57,52 @@ public class User {
     @Builder.Default
     private List<Ticket> tickets = new ArrayList<>();
     
+    // Explicit getter methods to ensure they exist
+    public Long getId() {
+        return id;
+    }
+    
+    public String getUsername() {
+        return username;
+    }
+    
+    public String getName() {
+        return name;
+    }
+    
+    public String getEmail() {
+        return email;
+    }
+    
+    public String getPassword() {
+        return password;
+    }
+    
+    public Role getRole() {
+        return role;
+    }
+    
+    // Explicit setter methods
+    public void setUsername(String username) {
+        this.username = username;
+    }
+    
+    public void setName(String name) {
+        this.name = name;
+    }
+    
+    public void setEmail(String email) {
+        this.email = email;
+    }
+    
+    public void setPassword(String password) {
+        this.password = password;
+    }
+    
+    public void setRole(Role role) {
+        this.role = role;
+    }
+    
     // Helper methods for bidirectional relationships
     public void addEvent(Event event) {
         events.add(event);
@@ -76,10 +122,5 @@ public class User {
     public void removeTicket(Ticket ticket) {
         tickets.remove(ticket);
         ticket.setUser(null);
-    }
-    
-    // Role enum
-    public enum Role {
-        USER, ADMIN
     }
 }

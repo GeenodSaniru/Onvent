@@ -3,6 +3,7 @@ package ac.nsbm.onvent.controller;
 import ac.nsbm.onvent.model.dto.AuthResponse;
 import ac.nsbm.onvent.model.dto.LoginRequest;
 import ac.nsbm.onvent.model.dto.SignupRequest;
+import ac.nsbm.onvent.model.entity.Role;
 import ac.nsbm.onvent.model.entity.User;
 import ac.nsbm.onvent.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -73,7 +74,7 @@ public class AuthController {
     public ResponseEntity<?> adminSignup(@Valid @RequestBody SignupRequest signupRequest) {
         try {
             // Set role to ADMIN regardless of what's in the request
-            signupRequest.setRole(User.Role.ADMIN);
+            signupRequest.setRole(Role.ADMIN);
             
             User user = userService.registerUser(signupRequest);
 
