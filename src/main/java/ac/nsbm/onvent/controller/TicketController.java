@@ -7,9 +7,14 @@ import ac.nsbm.onvent.model.dto.AvailabilityResponse;
 import ac.nsbm.onvent.model.dto.BookingRequest;
 import ac.nsbm.onvent.model.dto.BookingResponse;
 import ac.nsbm.onvent.model.entity.Ticket;
+import ac.nsbm.onvent.model.entity.User;
 import ac.nsbm.onvent.service.TicketService;
+import ac.nsbm.onvent.service.UserService;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -18,13 +23,15 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/tickets")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
 public class TicketController {
 
     private final TicketService ticketService;
+    private final UserService userService;
 
-    public TicketController(TicketService ticketService) {
+    public TicketController(TicketService ticketService, UserService userService) {
         this.ticketService = ticketService;
+        this.userService = userService;
     }
 
     /**
@@ -32,6 +39,7 @@ public class TicketController {
      * POST /tickets/book
      */
     @PostMapping("/book")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<?> bookTicket(@RequestBody BookingRequest request) {
         try {
             BookingResponse response = ticketService.bookTicket(request);
@@ -74,6 +82,7 @@ public class TicketController {
      * GET /tickets/user/{userId}/bookings
      */
     @GetMapping("/user/{userId}/bookings")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<?> getUserBookings(@PathVariable Long userId) {
         try {
             List<BookingResponse> bookings = ticketService.getUserBookings(userId);
@@ -85,13 +94,48 @@ public class TicketController {
     }
     
     /**
+     * Get current user's bookings
+     * GET /tickets/my-bookings
+     */
+    @GetMapping("/my-bookings")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ResponseEntity<?> getMyBookings() {
+        try {
+            // Get current user from authentication
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String username = authentication.getName();
+            
+            // Find the user by username
+            User currentUser = userService.findByUsernameOrEmail(username)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+            
+            // Get user's bookings
+            List<BookingResponse> bookings = ticketService.getMyBookings(currentUser);
+            return ResponseEntity.ok(bookings);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(createErrorResponse("An error occurred while fetching your bookings: " + e.getMessage()));
+        }
+    }
+    
+    /**
      * Cancel a booking
-     * DELETE /tickets/{ticketId}/cancel?userId={userId}
+     * DELETE /tickets/{ticketId}/cancel
      */
     @DeleteMapping("/{ticketId}/cancel")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<?> cancelBooking(@PathVariable Long ticketId, @RequestParam Long userId) {
         try {
-            ticketService.cancelBooking(ticketId, userId);
+            // Get current user from authentication
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String username = authentication.getName();
+            
+            // Find the user by username
+            User currentUser = userService.findByUsernameOrEmail(username)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+            
+            // Cancel the booking (the service will verify ownership)
+            ticketService.cancelBooking(ticketId, currentUser.getId());
             Map<String, String> response = new HashMap<>();
             response.put("message", "Booking cancelled successfully");
             return ResponseEntity.ok(response);
@@ -104,6 +148,43 @@ public class TicketController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(createErrorResponse("An error occurred while cancelling the booking"));
+        }
+    }
+    
+    /**
+     * Download PDF ticket
+     * GET /tickets/{ticketId}/pdf
+     */
+    @GetMapping("/{ticketId}/pdf")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ResponseEntity<?> downloadTicketPdf(@PathVariable Long ticketId) {
+        try {
+            // Get current user from authentication
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String username = authentication.getName();
+            
+            // Find the user by username
+            User currentUser = userService.findByUsernameOrEmail(username)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+            
+            // Generate PDF
+            byte[] pdfContent = ticketService.generateTicketPdf(ticketId, currentUser.getId());
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_PDF);
+            headers.setContentDispositionFormData("attachment", "ticket-" + ticketId + ".pdf");
+            headers.setContentLength(pdfContent.length);
+            
+            return new ResponseEntity<>(pdfContent, headers, HttpStatus.OK);
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(createErrorResponse(e.getMessage()));
+        } catch (InvalidBookingException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(createErrorResponse(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(createErrorResponse("An error occurred while generating the ticket PDF: " + e.getMessage()));
         }
     }
     
@@ -121,6 +202,7 @@ public class TicketController {
     // Legacy endpoints for backwards compatibility
     
     @PostMapping("/create")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Ticket> createTicket(@RequestBody Ticket ticket) {
         try {
             Ticket createdTicket = ticketService.createTicket(ticket);
@@ -131,12 +213,14 @@ public class TicketController {
     }
 
     @GetMapping("/all")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<Ticket>> getAllTickets() {
         List<Ticket> tickets = ticketService.getAllTickets();
         return new ResponseEntity<>(tickets, HttpStatus.OK);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<Ticket> getTicketById(@PathVariable Long id) {
         return ticketService.getTicketById(id)
                 .map(ticket -> new ResponseEntity<>(ticket, HttpStatus.OK))
@@ -144,6 +228,7 @@ public class TicketController {
     }
 
     @PutMapping("/update/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Ticket> updateTicket(@PathVariable Long id, @RequestBody Ticket ticketDetails) {
         try {
             Ticket updatedTicket = ticketService.updateTicket(id, ticketDetails);
@@ -156,6 +241,7 @@ public class TicketController {
     }
 
     @DeleteMapping("/delete/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteTicketById(@PathVariable Long id) {
         try {
             ticketService.deleteTicketById(id);

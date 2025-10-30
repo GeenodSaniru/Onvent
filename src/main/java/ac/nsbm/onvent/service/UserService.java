@@ -1,8 +1,13 @@
 package ac.nsbm.onvent.service;
 
+import ac.nsbm.onvent.model.dto.SignupRequest;
+import ac.nsbm.onvent.model.dto.UserProfileDTO;
 import ac.nsbm.onvent.model.entity.User;
 import ac.nsbm.onvent.repository.UserRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -11,9 +16,11 @@ import java.util.Optional;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     public User createUser(User user) {
@@ -24,6 +31,53 @@ public class UserService {
         return userRepository.save(user);
     }
 
+    /**
+     * Register a new user
+     */
+    public User registerUser(SignupRequest signupRequest) {
+        // Check if username already exists
+        if (userRepository.existsByUsername(signupRequest.getUsername())) {
+            throw new RuntimeException("Username is already taken");
+        }
+
+        // Check if email already exists
+        if (userRepository.existsByEmail(signupRequest.getEmail())) {
+            throw new RuntimeException("Email is already in use");
+        }
+
+        // Validate password strength
+        validatePassword(signupRequest.getPassword());
+
+        // Create new user
+        User user = new User(
+                signupRequest.getUsername(),
+                signupRequest.getName(),
+                signupRequest.getEmail(),
+                passwordEncoder.encode(signupRequest.getPassword())
+        );
+        user.setRole(signupRequest.getRole() != null ? signupRequest.getRole() : User.Role.USER);
+
+        return userRepository.save(user);
+    }
+
+    /**
+     * Validate password strength
+     */
+    private void validatePassword(String password) {
+        if (password.length() < 8) {
+            throw new RuntimeException("Password must be at least 8 characters long");
+        }
+        if (!password.matches(".*[A-Z].*")) {
+            throw new RuntimeException("Password must contain at least one uppercase letter");
+        }
+        if (!password.matches(".*[a-z].*")) {
+            throw new RuntimeException("Password must contain at least one lowercase letter");
+        }
+        if (!password.matches(".*\\d.*")) {
+            throw new RuntimeException("Password must contain at least one digit");
+        }
+    }
+
     public List<User> getAllUsers() {
         return userRepository.findAll();
     }
@@ -32,15 +86,78 @@ public class UserService {
         return userRepository.findById(id);
     }
 
-    public User updateUser(Long id, User userDetails) {
+    public Optional<User> findByUsernameOrEmail(String usernameOrEmail) {
+        return userRepository.findByUsernameOrEmail(usernameOrEmail, usernameOrEmail);
+    }
+
+    @Transactional
+    public UserProfileDTO updateUserProfile(Long id, UserProfileDTO profileDTO) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
 
-        user.setName(userDetails.getName());
-        user.setEmail(userDetails.getEmail());
-        user.setPassword(userDetails.getPassword());
+        // Check if email is being changed and if it's already taken
+        if (!user.getEmail().equals(profileDTO.getEmail()) && userRepository.existsByEmail(profileDTO.getEmail())) {
+            throw new RuntimeException("Email already exists");
+        }
 
-        return userRepository.save(user);
+        user.setName(profileDTO.getName());
+        user.setEmail(profileDTO.getEmail());
+
+        User updatedUser = userRepository.save(user);
+
+        return UserProfileDTO.builder()
+                .id(updatedUser.getId())
+                .username(updatedUser.getUsername())
+                .name(updatedUser.getName())
+                .email(updatedUser.getEmail())
+                .role(updatedUser.getRole())
+                .build();
+    }
+
+    /**
+     * Assign admin role to a user
+     * @param id User ID
+     * @return Updated user profile
+     */
+    @Transactional
+    @PreAuthorize("hasRole('ADMIN')")
+    public UserProfileDTO assignAdminRole(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
+
+        user.setRole(User.Role.ADMIN);
+        User updatedUser = userRepository.save(user);
+
+        return UserProfileDTO.builder()
+                .id(updatedUser.getId())
+                .username(updatedUser.getUsername())
+                .name(updatedUser.getName())
+                .email(updatedUser.getEmail())
+                .role(updatedUser.getRole())
+                .build();
+    }
+
+    /**
+     * Remove admin role from a user (demote to regular user)
+     * @param id User ID
+     * @return Updated user profile
+     */
+    @Transactional
+    @PreAuthorize("hasRole('ADMIN')")
+    public UserProfileDTO removeAdminRole(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
+
+        user.setRole(User.Role.USER);
+        User updatedUser = userRepository.save(user);
+
+        return UserProfileDTO.builder()
+                .id(updatedUser.getId())
+                .username(updatedUser.getUsername())
+                .name(updatedUser.getName())
+                .email(updatedUser.getEmail())
+                .role(updatedUser.getRole())
+                .build();
     }
 
     public void deleteUserById(Long id) {

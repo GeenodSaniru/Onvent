@@ -90,7 +90,17 @@ public class TicketService {
         sendBookingConfirmationEmail(user, ticket, pdfTicket);
         
         // Build response
-        return buildBookingResponse(ticket, availableSeats - numberOfTickets);
+        BookingResponse response = buildBookingResponse(ticket, availableSeats - numberOfTickets);
+        
+        // Send booking confirmation email
+        try {
+            emailService.sendBookingConfirmation(response, user.getEmail());
+        } catch (Exception e) {
+            // Log the error but don't fail the booking process
+            System.err.println("Failed to send booking confirmation email: " + e.getMessage());
+        }
+        
+        return response;
     }
     
     /**
@@ -129,6 +139,13 @@ public class TicketService {
     }
     
     /**
+     * Get bookings for the current authenticated user
+     */
+    public List<BookingResponse> getMyBookings(User currentUser) {
+        return getUserBookings(currentUser.getId());
+    }
+    
+    /**
      * Cancel a booking
      */
     @Transactional
@@ -154,6 +171,30 @@ public class TicketService {
         // Cancel the ticket
         ticket.setStatus(Ticket.TicketStatus.CANCELLED);
         ticketRepository.save(ticket);
+    }
+    
+    /**
+     * Generate PDF ticket for a booking
+     * @param ticketId The ID of the ticket
+     * @param userId The ID of the user (for verification)
+     * @return Byte array containing the PDF content
+     */
+    public byte[] generateTicketPdf(Long ticketId, Long userId) {
+        Ticket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new ResourceNotFoundException("Ticket not found with ID: " + ticketId));
+        
+        // Verify ownership
+        if (!ticket.getUser().getId().equals(userId)) {
+            throw new InvalidBookingException("You can only download your own tickets");
+        }
+        
+        // Build booking response
+        Long bookedSeats = ticketRepository.countActiveTicketsByEventId(ticket.getEvent().getId());
+        int availableSeats = ticket.getEvent().getMaxAttendees() - bookedSeats.intValue();
+        BookingResponse response = buildBookingResponse(ticket, availableSeats);
+        
+        // Generate PDF
+        return pdfService.generateTicketPdf(response);
     }
     
     /**

@@ -4,12 +4,14 @@ import ac.nsbm.onvent.model.entity.Event;
 import ac.nsbm.onvent.service.EventService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/events")
+@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
 public class EventController {
 
     private final EventService eventService;
@@ -19,6 +21,7 @@ public class EventController {
     }
 
     @PostMapping("/create")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Event> createEvent(@RequestBody Event event) {
         try {
             Event createdEvent = eventService.createEvent(event);
@@ -42,6 +45,7 @@ public class EventController {
     }
 
     @PutMapping("/update/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Event> updateEvent(@PathVariable Long id, @RequestBody Event eventDetails) {
         try {
             Event updatedEvent = eventService.updateEvent(id, eventDetails);
@@ -54,6 +58,7 @@ public class EventController {
     }
 
     @DeleteMapping("/delete/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteEventById(@PathVariable Long id) {
         try {
             eventService.deleteEventById(id);

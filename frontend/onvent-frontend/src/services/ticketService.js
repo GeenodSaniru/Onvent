@@ -1,51 +1,50 @@
 import api from './api';
 
 class TicketService {
-  // New booking endpoints
-  
-  // Book a ticket for an event
-  bookTicket(bookingRequest) {
-    return api.post('/tickets/book', bookingRequest);
+  // Book a ticket
+  bookTicket(bookingData) {
+    return api.post('/tickets/book', bookingData);
   }
-  
+
   // Check seat availability for an event
   checkAvailability(eventId) {
     return api.get(`/tickets/availability/${eventId}`);
   }
-  
-  // Get all bookings for a user
-  getUserBookings(userId) {
-    return api.get(`/tickets/user/${userId}/bookings`);
-  }
-  
-  // Cancel a booking
-  cancelBooking(ticketId, userId) {
-    return api.delete(`/tickets/${ticketId}/cancel?userId=${userId}`);
-  }
-  
-  // Legacy endpoints
-  
-  // Create a new ticket
-  createTicket(ticket) {
-    return api.post('/tickets/create', ticket);
+
+  // Get current user's bookings
+  getMyBookings() {
+    return api.get('/tickets/my-bookings');
   }
 
-  // Get all tickets
+  // Cancel a booking
+  cancelBooking(ticketId) {
+    return api.delete(`/tickets/${ticketId}/cancel`);
+  }
+
+  // Download PDF ticket
+  downloadTicketPdf(ticketId) {
+    return api.get(`/tickets/${ticketId}/pdf`, {
+      responseType: 'blob' // Important for handling binary data
+    });
+  }
+
+  // Legacy methods
   getAllTickets() {
     return api.get('/tickets/all');
   }
 
-  // Get ticket by ID
   getTicketById(id) {
     return api.get(`/tickets/${id}`);
   }
 
-  // Update ticket by ID
+  createTicket(ticket) {
+    return api.post('/tickets/create', ticket);
+  }
+
   updateTicket(id, ticket) {
     return api.put(`/tickets/update/${id}`, ticket);
   }
 
-  // Delete ticket by ID
   deleteTicket(id) {
     return api.delete(`/tickets/delete/${id}`);
   }

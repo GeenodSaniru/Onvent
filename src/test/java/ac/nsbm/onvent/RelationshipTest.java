@@ -33,7 +33,12 @@ public class RelationshipTest {
     @Test
     public void testRelationships() {
         // Create a user
-        User user = new User("Test User", "test@example.com", "password");
+        User user = new User();
+        user.setUsername("testuser");
+        user.setName("Test User");
+        user.setEmail("test@example.com");
+        user.setPassword("password");
+        user.setRole(User.Role.USER);
         user = userRepository.save(user);
         
         // Create an event
