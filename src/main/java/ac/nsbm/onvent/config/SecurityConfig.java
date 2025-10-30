@@ -52,6 +52,20 @@ public class SecurityConfig {
     }
 
     @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(List.of("http://localhost:5173"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(Arrays.asList("*"));
+        configuration.setAllowCredentials(true);
+        configuration.setMaxAge(3600L);
+        
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
+    }
+
+    @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         // CSRF token handler for SPA applications
         CsrfTokenRequestAttributeHandler requestHandler = new CsrfTokenRequestAttributeHandler();
@@ -81,11 +95,9 @@ public class SecurityConfig {
                 
                 // Ticket endpoints - Users can book, ADMIN can view all
                 .requestMatchers(HttpMethod.POST, "/tickets/book").hasAnyRole("USER", "ADMIN")
-                .requestMatchers(HttpMethod.GET, "/tickets/availability/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/tickets/user/**").hasAnyRole("USER", "ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/tickets/**").hasAnyRole("USER", "ADMIN")
                 .requestMatchers(HttpMethod.GET, "/tickets/all").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.GET, "/tickets/my-bookings").hasAnyRole("USER", "ADMIN")
                 .requestMatchers("/tickets/**").hasAnyRole("USER", "ADMIN")
                 
                 // User management - ADMIN only except profile updates
