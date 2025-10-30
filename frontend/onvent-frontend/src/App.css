@@ -72,7 +72,7 @@
 }
 
 /* Form Styles */
-.registration-form, .login-form, .event-form, .ticket-form, .crud-test, .api-test {
+.registration-form, .login-form, .event-form, .ticket-form, .crud-test, .api-test, .user-profile {
   max-width: 800px;
   margin: 0 auto;
   padding: 2.5rem;
@@ -900,6 +900,91 @@ button:disabled {
   font-size: 20px;
 }
 
+/* User Profile Styles */
+.user-profile h2 {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.profile-section, .password-section {
+  background-color: var(--surface-light);
+  border-radius: var(--border-radius);
+  padding: 2rem;
+  margin-bottom: 2rem;
+  box-shadow: var(--box-shadow);
+}
+
+.profile-field {
+  display: flex;
+  margin-bottom: 1rem;
+}
+
+.profile-field label {
+  font-weight: var(--font-weight-semibold);
+  width: 150px;
+}
+
+.profile-view button {
+  margin-top: 1rem;
+}
+
+.password-form button {
+  margin-top: 1rem;
+}
+
+small {
+  color: var(--text-secondary-light);
+  font-size: var(--font-size-sm);
+}
+
+.password-requirements {
+  margin-top: 0.5rem;
+  padding: 1rem;
+  background-color: var(--surface-light);
+  border-radius: var(--border-radius);
+}
+
+.password-requirements h4 {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+}
+
+.password-requirements ul {
+  margin: 0;
+  padding-left: 1.5rem;
+}
+
+.requirement-met {
+  color: var(--success-color);
+}
+
+.requirement-missing {
+  color: var(--error-color);
+}
+
+.password-errors {
+  margin-top: 1rem;
+  padding: 1rem;
+  background-color: rgba(248, 113, 113, 0.15);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--error-color);
+}
+
+.password-errors h4 {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  color: var(--error-color);
+}
+
+.password-errors ul {
+  margin: 0;
+  padding-left: 1.5rem;
+}
+
+.password-errors li {
+  color: var(--error-color);
+}
+
 @media (max-width: 768px) {
   .nav-links-container {
     flex-direction: column;
@@ -907,5 +992,14 @@ button:disabled {
 
   .nav-link {
     justify-content: center;
+  }
+  
+  .profile-field {
+    flex-direction: column;
+  }
+  
+  .profile-field label {
+    width: auto;
+    margin-bottom: 0.25rem;
   }
 }

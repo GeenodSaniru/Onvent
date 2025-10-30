@@ -1,15 +1,40 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import ticketService from '../services/ticketService';
+import eventService from '../services/eventService';
 
 const TicketBooking = () => {
+  const { eventId } = useParams();
   const [ticket, setTicket] = useState({
     purchaseDate: new Date().toISOString().slice(0, 16),
     ticketCode: '',
     user: { id: '' },
-    event: { id: '' }
+    event: { id: eventId || '' }
   });
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [eventDetails, setEventDetails] = useState(null);
+
+  useEffect(() => {
+    // If we have an eventId from the URL, fetch event details
+    if (eventId) {
+      fetchEventDetails(eventId);
+      // Pre-fill the event ID in the form
+      setTicket(prev => ({
+        ...prev,
+        event: { id: eventId }
+      }));
+    }
+  }, [eventId]);
+
+  const fetchEventDetails = async (id) => {
+    try {
+      const response = await eventService.getEventById(id);
+      setEventDetails(response.data);
+    } catch (error) {
+      setMessage('Error fetching event details: ' + (error.response?.data?.message || error.message));
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -23,6 +48,10 @@ const TicketBooking = () => {
         ...ticket,
         event: { id: value }
       });
+      // Fetch event details when event ID changes
+      if (value) {
+        fetchEventDetails(value);
+      }
     } else if (name === 'ticketCode') {
       setTicket({
         ...ticket,
@@ -48,13 +77,13 @@ const TicketBooking = () => {
         event: { id: parseInt(ticket.event.id) }
       };
       
-      const response = await ticketService.createTicket(ticketData);
+      const response = await ticketService.bookTicket(ticketData);
       setMessage('Ticket booked successfully!');
       setTicket({
         purchaseDate: new Date().toISOString().slice(0, 16),
         ticketCode: '',
         user: { id: '' },
-        event: { id: '' }
+        event: { id: eventId || '' }
       });
     } catch (error) {
       setMessage('Error booking ticket: ' + (error.response?.data?.message || error.message));
@@ -65,7 +94,16 @@ const TicketBooking = () => {
 
   return (
     <div className="ticket-form">
-      <h2>Book Ticket</h2>
+      <h2>{eventId ? `Book Ticket for "${eventDetails?.title || 'Event'}"` : 'Book Ticket'}</h2>
+      {eventDetails && (
+        <div className="event-details">
+          <h3>Event Details:</h3>
+          <p><strong>Title:</strong> {eventDetails.title}</p>
+          <p><strong>Location:</strong> {eventDetails.location}</p>
+          <p><strong>Date:</strong> {new Date(eventDetails.eventDate).toLocaleString()}</p>
+          <p><strong>Price:</strong> ${eventDetails.price.toFixed(2)}</p>
+        </div>
+      )}
       {message && (
         <div className={message.includes('successfully') ? 'message' : 'error'}>
           {message}
@@ -106,18 +144,20 @@ const TicketBooking = () => {
             placeholder="Enter user ID"
           />
         </div>
-        <div className="form-group">
-          <label htmlFor="eventId">Event ID:</label>
-          <input
-            type="number"
-            id="eventId"
-            name="eventId"
-            value={ticket.event.id}
-            onChange={handleChange}
-            required
-            placeholder="Enter event ID"
-          />
-        </div>
+        {!eventId && (
+          <div className="form-group">
+            <label htmlFor="eventId">Event ID:</label>
+            <input
+              type="number"
+              id="eventId"
+              name="eventId"
+              value={ticket.event.id}
+              onChange={handleChange}
+              required
+              placeholder="Enter event ID"
+            />
+          </div>
+        )}
         <button type="submit" disabled={isLoading}>
           {isLoading ? 'Booking Ticket...' : 'Book Ticket'}
         </button>

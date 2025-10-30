@@ -24,6 +24,10 @@ const AdminDashboard = () => {
             <span className="nav-icon">👥</span>
             <span className="nav-text">Manage Users</span>
           </Link>
+          <Link to="/user/profile" className="nav-link">
+            <span className="nav-icon">👤</span>
+            <span className="nav-text">My Profile</span>
+          </Link>
         </div>
       </div>
 

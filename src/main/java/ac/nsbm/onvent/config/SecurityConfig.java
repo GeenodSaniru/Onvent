@@ -52,20 +52,6 @@ public class SecurityConfig {
     }
 
     @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:5173"));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("*"));
-        configuration.setAllowCredentials(true);
-        configuration.setMaxAge(3600L);
-        
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
-        return source;
-    }
-
-    @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         // CSRF token handler for SPA applications
         CsrfTokenRequestAttributeHandler requestHandler = new CsrfTokenRequestAttributeHandler();
@@ -79,7 +65,8 @@ public class SecurityConfig {
                 .ignoringRequestMatchers(
                     "/api/auth/signup",
                     "/api/auth/login",
-                    "/api/test/**"
+                    "/api/test/**",
+                    "/events/**"
                 )
             )
             .authorizeHttpRequests(authz -> authz
@@ -87,11 +74,12 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/test/**").permitAll()
                 
-                // Event endpoints - Browse available for all, management for ADMIN
+                // Event endpoints - Browse available for all, management for USER and ADMIN
                 .requestMatchers(HttpMethod.GET, "/events/**").permitAll()
-                .requestMatchers(HttpMethod.POST, "/events/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.PUT, "/events/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.DELETE, "/events/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.POST, "/events/create").hasAnyRole("USER", "ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/events/update/**").hasAnyRole("USER", "ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/events/delete/**").hasAnyRole("USER", "ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/events/admin/delete/**").hasRole("ADMIN")
                 
                 // Ticket endpoints - Users can book, ADMIN can view all
                 .requestMatchers(HttpMethod.POST, "/tickets/book").hasAnyRole("USER", "ADMIN")
@@ -103,6 +91,7 @@ public class SecurityConfig {
                 // User management - ADMIN only except profile updates
                 .requestMatchers("/users/profile/**").hasAnyRole("USER", "ADMIN")
                 .requestMatchers("/users/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/users/admin/delete/**").hasRole("ADMIN")
                 
                 // All other requests require authentication
                 .anyRequest().authenticated()
