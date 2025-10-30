@@ -5,6 +5,7 @@ import ac.nsbm.onvent.model.dto.UserProfileDTO;
 import ac.nsbm.onvent.model.entity.User;
 import ac.nsbm.onvent.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -89,17 +90,6 @@ public class UserService {
         return userRepository.findByUsernameOrEmail(usernameOrEmail, usernameOrEmail);
     }
 
-    public User updateUser(Long id, User userDetails) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
-
-        user.setName(userDetails.getName());
-        user.setEmail(userDetails.getEmail());
-        user.setPassword(userDetails.getPassword());
-
-        return userRepository.save(user);
-    }
-
     @Transactional
     public UserProfileDTO updateUserProfile(Long id, UserProfileDTO profileDTO) {
         User user = userRepository.findById(id)
@@ -113,6 +103,52 @@ public class UserService {
         user.setName(profileDTO.getName());
         user.setEmail(profileDTO.getEmail());
 
+        User updatedUser = userRepository.save(user);
+
+        return UserProfileDTO.builder()
+                .id(updatedUser.getId())
+                .username(updatedUser.getUsername())
+                .name(updatedUser.getName())
+                .email(updatedUser.getEmail())
+                .role(updatedUser.getRole())
+                .build();
+    }
+
+    /**
+     * Assign admin role to a user
+     * @param id User ID
+     * @return Updated user profile
+     */
+    @Transactional
+    @PreAuthorize("hasRole('ADMIN')")
+    public UserProfileDTO assignAdminRole(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
+
+        user.setRole(User.Role.ADMIN);
+        User updatedUser = userRepository.save(user);
+
+        return UserProfileDTO.builder()
+                .id(updatedUser.getId())
+                .username(updatedUser.getUsername())
+                .name(updatedUser.getName())
+                .email(updatedUser.getEmail())
+                .role(updatedUser.getRole())
+                .build();
+    }
+
+    /**
+     * Remove admin role from a user (demote to regular user)
+     * @param id User ID
+     * @return Updated user profile
+     */
+    @Transactional
+    @PreAuthorize("hasRole('ADMIN')")
+    public UserProfileDTO removeAdminRole(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
+
+        user.setRole(User.Role.USER);
         User updatedUser = userRepository.save(user);
 
         return UserProfileDTO.builder()

@@ -12,6 +12,7 @@ import ac.nsbm.onvent.model.entity.User;
 import ac.nsbm.onvent.repository.EventRepository;
 import ac.nsbm.onvent.repository.TicketRepository;
 import ac.nsbm.onvent.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +28,12 @@ public class TicketService {
     private final TicketRepository ticketRepository;
     private final EventRepository eventRepository;
     private final UserRepository userRepository;
+    
+    @Autowired
+    private EmailService emailService;
+    
+    @Autowired
+    private PdfService pdfService;
 
     public TicketService(TicketRepository ticketRepository, EventRepository eventRepository, UserRepository userRepository) {
         this.ticketRepository = ticketRepository;
@@ -86,7 +93,17 @@ public class TicketService {
         ticket = ticketRepository.save(ticket);
         
         // Build response
-        return buildBookingResponse(ticket, availableSeats - numberOfTickets);
+        BookingResponse response = buildBookingResponse(ticket, availableSeats - numberOfTickets);
+        
+        // Send booking confirmation email
+        try {
+            emailService.sendBookingConfirmation(response, user.getEmail());
+        } catch (Exception e) {
+            // Log the error but don't fail the booking process
+            System.err.println("Failed to send booking confirmation email: " + e.getMessage());
+        }
+        
+        return response;
     }
     
     /**
@@ -157,6 +174,30 @@ public class TicketService {
         // Cancel the ticket
         ticket.setStatus(Ticket.TicketStatus.CANCELLED);
         ticketRepository.save(ticket);
+    }
+    
+    /**
+     * Generate PDF ticket for a booking
+     * @param ticketId The ID of the ticket
+     * @param userId The ID of the user (for verification)
+     * @return Byte array containing the PDF content
+     */
+    public byte[] generateTicketPdf(Long ticketId, Long userId) {
+        Ticket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new ResourceNotFoundException("Ticket not found with ID: " + ticketId));
+        
+        // Verify ownership
+        if (!ticket.getUser().getId().equals(userId)) {
+            throw new InvalidBookingException("You can only download your own tickets");
+        }
+        
+        // Build booking response
+        Long bookedSeats = ticketRepository.countActiveTicketsByEventId(ticket.getEvent().getId());
+        int availableSeats = ticket.getEvent().getMaxAttendees() - bookedSeats.intValue();
+        BookingResponse response = buildBookingResponse(ticket, availableSeats);
+        
+        // Generate PDF
+        return pdfService.generateTicketPdf(response);
     }
     
     /**

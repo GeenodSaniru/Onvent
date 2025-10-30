@@ -123,12 +123,66 @@ public class UserController {
     @PutMapping("/update/{id}")
     public ResponseEntity<User> updateUser(@PathVariable Long id, @RequestBody User userDetails) {
         try {
-            User updatedUser = userService.updateUser(id, userDetails);
+            // Convert User to UserProfileDTO for the updateUserProfile method
+            UserProfileDTO profileDTO = UserProfileDTO.builder()
+                    .name(userDetails.getName())
+                    .email(userDetails.getEmail())
+                    .build();
+            
+            UserProfileDTO updatedProfile = userService.updateUserProfile(id, profileDTO);
+            
+            // Convert back to User for the response
+            User updatedUser = new User(
+                    updatedProfile.getUsername(),
+                    updatedProfile.getName(),
+                    updatedProfile.getEmail(),
+                    ""); // Password is not returned for security reasons
+            updatedUser.setId(updatedProfile.getId());
+            updatedUser.setRole(updatedProfile.getRole());
+            
             return new ResponseEntity<>(updatedUser, HttpStatus.OK);
         } catch (RuntimeException e) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         } catch (Exception e) {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * Assign admin role to a user
+     * PUT /users/{id}/assign-admin
+     */
+    @PutMapping("/{id}/assign-admin")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> assignAdminRole(@PathVariable Long id) {
+        try {
+            UserProfileDTO updatedProfile = userService.assignAdminRole(id);
+            return ResponseEntity.ok(updatedProfile);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(createErrorResponse(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(createErrorResponse("An error occurred while assigning admin role"));
+        }
+    }
+
+    /**
+     * Remove admin role from a user
+     * PUT /users/{id}/remove-admin
+     */
+    @PutMapping("/{id}/remove-admin")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> removeAdminRole(@PathVariable Long id) {
+        try {
+            UserProfileDTO updatedProfile = userService.removeAdminRole(id);
+            return ResponseEntity.ok(updatedProfile);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(createErrorResponse(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(createErrorResponse("An error occurred while removing admin role"));
         }
     }
 
