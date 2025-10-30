@@ -2,10 +2,10 @@ package ac.nsbm.onvent.service;
 
 import ac.nsbm.onvent.model.dto.SignupRequest;
 import ac.nsbm.onvent.model.dto.UserProfileDTO;
-import ac.nsbm.onvent.model.entity.Role;
 import ac.nsbm.onvent.model.entity.User;
 import ac.nsbm.onvent.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,17 +31,31 @@ public class UserService {
         return userRepository.save(user);
     }
 
+    /**
+     * Register a new user
+     */
+    public User registerUser(SignupRequest signupRequest) {
+        // Check if username already exists
+        if (userRepository.existsByUsername(signupRequest.getUsername())) {
+            throw new RuntimeException("Username is already taken");
+        }
+
+        // Check if email already exists
+        if (userRepository.existsByEmail(signupRequest.getEmail())) {
+            throw new RuntimeException("Email is already in use");
+        }
+
         // Validate password strength
         validatePassword(signupRequest.getPassword());
 
         // Create new user
-        User user = User.builder()
-                .username(signupRequest.getUsername())
-                .name(signupRequest.getName())
-                .email(signupRequest.getEmail())
-                .password(passwordEncoder.encode(signupRequest.getPassword()))
-                .role(signupRequest.getRole() != null ? signupRequest.getRole() : Role.USER)
-                .build();
+        User user = new User(
+                signupRequest.getUsername(),
+                signupRequest.getName(),
+                signupRequest.getEmail(),
+                passwordEncoder.encode(signupRequest.getPassword())
+        );
+        user.setRole(signupRequest.getRole() != null ? signupRequest.getRole() : User.Role.USER);
 
         return userRepository.save(user);
     }
@@ -64,11 +78,20 @@ public class UserService {
         }
     }
 
+    public List<User> getAllUsers() {
+        return userRepository.findAll();
+    }
+
+    public Optional<User> getUserById(Long id) {
+        return userRepository.findById(id);
+    }
+
     public Optional<User> findByUsernameOrEmail(String usernameOrEmail) {
         return userRepository.findByUsernameOrEmail(usernameOrEmail, usernameOrEmail);
     }
 
-    public User updateUser(Long id, User userDetails) {
+    @Transactional
+    public UserProfileDTO updateUserProfile(Long id, UserProfileDTO profileDTO) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
 
@@ -91,19 +114,41 @@ public class UserService {
                 .build();
     }
 
+    /**
+     * Assign admin role to a user
+     * @param id User ID
+     * @return Updated user profile
+     */
     @Transactional
-    public UserProfileDTO updateUserProfile(Long id, UserProfileDTO profileDTO) {
+    @PreAuthorize("hasRole('ADMIN')")
+    public UserProfileDTO assignAdminRole(Long id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
 
-        // Check if email is being changed and if it's already taken
-        if (!user.getEmail().equals(profileDTO.getEmail()) && userRepository.existsByEmail(profileDTO.getEmail())) {
-            throw new RuntimeException("Email already exists");
-        }
+        user.setRole(User.Role.ADMIN);
+        User updatedUser = userRepository.save(user);
 
-        user.setName(profileDTO.getName());
-        user.setEmail(profileDTO.getEmail());
+        return UserProfileDTO.builder()
+                .id(updatedUser.getId())
+                .username(updatedUser.getUsername())
+                .name(updatedUser.getName())
+                .email(updatedUser.getEmail())
+                .role(updatedUser.getRole())
+                .build();
+    }
 
+    /**
+     * Remove admin role from a user (demote to regular user)
+     * @param id User ID
+     * @return Updated user profile
+     */
+    @Transactional
+    @PreAuthorize("hasRole('ADMIN')")
+    public UserProfileDTO removeAdminRole(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
+
+        user.setRole(User.Role.USER);
         User updatedUser = userRepository.save(user);
 
         return UserProfileDTO.builder()

@@ -31,15 +31,23 @@ const UserLogin = () => {
       if (response.status === 200) {
         // Set authentication state
         localStorage.setItem('isLoggedIn', 'true');
+        localStorage.setItem('userRole', response.data.role);
         setMessage('Login successful! Redirecting...');
         
-        // Redirect to dashboard after a short delay
+        // Redirect based on user role
         setTimeout(() => {
-          navigate('/dashboard');
+          if (response.data.role === 'ADMIN') {
+            navigate('/admin/dashboard');
+          } else {
+            navigate('/user/home');
+          }
         }, 1000);
       }
     } catch (err) {
       setError(err.response?.data?.error || 'Login failed. Please check your credentials.');
+      // Ensure we're marked as logged out on login failure
+      localStorage.setItem('isLoggedIn', 'false');
+      localStorage.removeItem('userRole');
     } finally {
       setIsLoading(false);
     }

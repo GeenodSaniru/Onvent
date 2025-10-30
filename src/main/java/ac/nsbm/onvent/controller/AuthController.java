@@ -10,6 +10,7 @@ import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -64,6 +65,38 @@ public class AuthController {
     }
 
     /**
+     * Admin user registration endpoint (for creating initial admin users)
+     * POST /api/auth/admin-signup
+     */
+    @PostMapping("/admin-signup")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> adminSignup(@Valid @RequestBody SignupRequest signupRequest) {
+        try {
+            // Set role to ADMIN regardless of what's in the request
+            signupRequest.setRole(User.Role.ADMIN);
+            
+            User user = userService.registerUser(signupRequest);
+
+            AuthResponse response = AuthResponse.builder()
+                    .id(user.getId())
+                    .username(user.getUsername())
+                    .name(user.getName())
+                    .email(user.getEmail())
+                    .role(user.getRole())
+                    .message("Admin user registered successfully")
+                    .build();
+
+            return new ResponseEntity<>(response, HttpStatus.CREATED);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(createErrorResponse(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(createErrorResponse("An error occurred during admin registration"));
+        }
+    }
+
+    /**
      * User login endpoint with session-based authentication
      * POST /api/auth/login
      */
@@ -85,6 +118,9 @@ public class AuthController {
             // Create new session and add the security context
             HttpSession session = request.getSession(true);
             session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, securityContext);
+            
+            // Set session timeout
+            session.setMaxInactiveInterval(1800); // 30 minutes
 
             // Get user details
             User user = userService.findByUsernameOrEmail(loginRequest.getUsernameOrEmail())

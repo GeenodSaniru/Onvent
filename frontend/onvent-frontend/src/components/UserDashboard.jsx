@@ -56,6 +56,25 @@ const UserDashboard = () => {
 
   return (
     <div className="dashboard-container">
+      {/* Navigation Links Section */}
+      <div className="dashboard-navigation">
+        <h2>Quick Navigation</h2>
+        <div className="nav-links-container">
+          <a href="/" className="nav-link">
+            <span className="nav-icon">🏠</span>
+            <span className="nav-text">Home Page</span>
+          </a>
+          <a href="/events" className="nav-link">
+            <span className="nav-icon">📅</span>
+            <span className="nav-text">Event List</span>
+          </a>
+          <a href="/tickets" className="nav-link">
+            <span className="nav-icon">🎟️</span>
+            <span className="nav-text">My Tickets</span>
+          </a>
+        </div>
+      </div>
+
       <div className="dashboard-header">
         <h2>My Bookings Dashboard</h2>
       </div>
