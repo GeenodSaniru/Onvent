@@ -127,6 +127,35 @@
   color: var(--text-primary-light);
 }
 
+/* Password Requirements Styles */
+.password-requirements {
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  background-color: rgba(67, 97, 238, 0.05);
+  border-radius: var(--border-radius);
+  border-left: 3px solid var(--primary-color);
+}
+
+.password-requirements small {
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary-light);
+}
+
+.password-requirements ul {
+  margin: 0.5rem 0 0 0;
+  padding-left: 1.25rem;
+}
+
+.password-requirements li {
+  margin-bottom: 0.25rem;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary-light);
+}
+
+.password-requirements li:last-child {
+  margin-bottom: 0;
+}
+
 /* Button Styles - Using global button styles from index.css */
 /* Specific form buttons */
 .form-actions {

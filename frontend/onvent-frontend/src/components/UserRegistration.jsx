@@ -104,6 +104,15 @@ const UserRegistration = () => {
             required
             placeholder="Create a strong password"
           />
+          <div className="password-requirements">
+            <small>Password must contain:</small>
+            <ul>
+              <li>At least 8 characters</li>
+              <li>At least one uppercase letter</li>
+              <li>At least one lowercase letter</li>
+              <li>At least one digit</li>
+            </ul>
+          </div>
         </div>
         <button type="submit" disabled={isLoading}>
           {isLoading ? 'Registering...' : 'Register'}
