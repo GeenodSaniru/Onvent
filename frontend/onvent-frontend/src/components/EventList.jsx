@@ -1,123 +1,72 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import eventService from '../services/eventService';
+import React, { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
+import api from '../services/api'
 
 const EventList = () => {
-  const [events, setEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userRole, setUserRole] = useState(null);
-  const navigate = useNavigate();
+  const [events, setEvents] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [searchTerm, setSearchTerm] = useState('')
 
   useEffect(() => {
-    // Check if user is logged in and get user role
-    const loggedIn = localStorage.getItem('isLoggedIn') === 'true';
-    const role = localStorage.getItem('userRole');
-    setIsLoggedIn(loggedIn);
-    setUserRole(role);
-    
-    loadEvents();
-  }, []);
+    fetchEvents()
+  }, [])
 
-  const loadEvents = async () => {
+  const fetchEvents = async () => {
     try {
-      setLoading(true);
-      const response = await eventService.getAllEvents();
-      setEvents(response.data);
-      setError('');
+      const response = await api.get('/api/events')
+      setEvents(response.data)
     } catch (err) {
-      setError('Error loading events: ' + (err.response?.data?.message || err.message));
+      setError('Failed to load events')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this event?')) {
-      try {
-        await eventService.deleteEvent(id);
-        loadEvents(); // Refresh the list
-      } catch (err) {
-        setError('Error deleting event: ' + (err.response?.data?.message || err.message));
-      }
-    }
-  };
+  const filteredEvents = events.filter(event =>
+    event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    event.description.toLowerCase().includes(searchTerm.toLowerCase())
+  )
 
-  const handleBookEvent = async (eventId) => {
-    try {
-      // Redirect to booking page with event ID
-      navigate(`/tickets/book/${eventId}`);
-    } catch (err) {
-      setError('Error booking event: ' + (err.response?.data?.message || err.message));
-    }
-  };
-
-  if (loading) return <div className="message">Loading events...</div>;
-  if (error) return <div className="error">{error}</div>;
+  if (loading) {
+    return <div className="loading-container">Loading events...</div>
+  }
 
   return (
-    <div className="event-list">
-      <h2>Events</h2>
-      <div className="form-actions">
-        <button onClick={loadEvents}>Refresh Events</button>
-      </div>
-      {events.length === 0 ? (
-        <p>No events found.</p>
-      ) : (
-        <div className="table-container">
-          <table className="events-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Title</th>
-                <th>Description</th>
-                <th>Location</th>
-                <th>Date</th>
-                <th>Price</th>
-                <th>Max Attendees</th>
-                <th>Organizer</th>
-                {(isLoggedIn || userRole === 'ADMIN') && <th>Actions</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {events.map(event => (
-                <tr key={event.id}>
-                  <td>{event.id}</td>
-                  <td>{event.title}</td>
-                  <td>{event.description.substring(0, 50)}...</td>
-                  <td>{event.location}</td>
-                  <td>{new Date(event.eventDate).toLocaleString()}</td>
-                  <td>${event.price.toFixed(2)}</td>
-                  <td>{event.maxAttendees}</td>
-                  <td>{event.organizer?.username || 'N/A'}</td>
-                  {(isLoggedIn || userRole === 'ADMIN') && (
-                    <td>
-                      <button 
-                        onClick={() => handleBookEvent(event.id)}
-                        className="btn-primary"
-                      >
-                        Book
-                      </button>
-                      {userRole === 'ADMIN' && (
-                        <button 
-                          onClick={() => handleDelete(event.id)}
-                          className="btn-secondary"
-                          style={{ marginLeft: '10px' }}
-                        >
-                          Delete
-                        </button>
-                      )}
-                    </td>
-                  )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+    <div className="events-page">
+      <div className="events-header">
+        <h1>Upcoming Events</h1>
+        <div className="search-container">
+          <input
+            type="text"
+            placeholder="Search events..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="form-input"
+          />
         </div>
-      )}
+      </div>
+      
+      {error && <div className="error-message">{error}</div>}
+      
+      <div className="events-grid">
+        {filteredEvents.length === 0 ? (
+          <p>No events found.</p>
+        ) : (
+          filteredEvents.map(event => (
+            <div key={event.id} className="event-card">
+              <h3>{event.title}</h3>
+              <p>{event.description}</p>
+              <p><strong>Date:</strong> {new Date(event.date).toLocaleDateString()}</p>
+              <p><strong>Price:</strong> ${event.price}</p>
+              <p><strong>Seats Available:</strong> {event.seats}</p>
+              <Link to={`/events/${event.id}`} className="btn btn-primary">View Details</Link>
+            </div>
+          ))
+        )}
+      </div>
     </div>
-  );
-};
+  )
+}
 
-export default EventList;
+export default EventList
