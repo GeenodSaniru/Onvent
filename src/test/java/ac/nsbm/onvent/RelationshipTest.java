@@ -4,6 +4,7 @@ import ac.nsbm.onvent.model.entity.Role;
 import ac.nsbm.onvent.model.entity.User;
 import ac.nsbm.onvent.model.entity.Event;
 import ac.nsbm.onvent.model.entity.Ticket;
+import ac.nsbm.onvent.model.entity.Role;
 import ac.nsbm.onvent.repository.UserRepository;
 import ac.nsbm.onvent.repository.EventRepository;
 import ac.nsbm.onvent.repository.TicketRepository;

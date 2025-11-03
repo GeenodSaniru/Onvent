@@ -5,6 +5,7 @@ import ac.nsbm.onvent.model.dto.LoginRequest;
 import ac.nsbm.onvent.model.dto.SignupRequest;
 import ac.nsbm.onvent.model.entity.Role;
 import ac.nsbm.onvent.model.entity.User;
+import ac.nsbm.onvent.model.entity.Role;
 import ac.nsbm.onvent.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
@@ -19,10 +20,12 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -94,6 +97,37 @@ public class AuthController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(createErrorResponse("An error occurred during admin registration"));
+        }
+    }
+
+    /**
+     * Create initial admin user (temporary endpoint)
+     * POST /api/auth/create-initial-admin
+     */
+    @PostMapping("/create-initial-admin")
+    public ResponseEntity<?> createInitialAdmin(@Valid @RequestBody SignupRequest signupRequest) {
+        try {
+            // Set role to ADMIN
+            signupRequest.setRole(Role.ADMIN);
+            
+            User user = userService.registerUser(signupRequest);
+
+            AuthResponse response = AuthResponse.builder()
+                    .id(user.getId())
+                    .username(user.getUsername())
+                    .name(user.getName())
+                    .email(user.getEmail())
+                    .role(user.getRole())
+                    .message("Initial admin user created successfully")
+                    .build();
+
+            return new ResponseEntity<>(response, HttpStatus.CREATED);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(createErrorResponse(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(createErrorResponse("An error occurred during admin creation"));
         }
     }
 
@@ -203,6 +237,17 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(createErrorResponse("An error occurred while fetching user details"));
         }
+    }
+
+    /**
+     * Handle validation errors for request bodies
+     */
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<?> handleValidationExceptions(MethodArgumentNotValidException ex) {
+        Map<String, String> errors = new HashMap<>();
+        ex.getBindingResult().getFieldErrors().forEach(error -> 
+            errors.put(error.getField(), error.getDefaultMessage()));
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errors);
     }
 
     /**

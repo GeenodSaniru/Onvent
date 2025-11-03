@@ -4,6 +4,7 @@ import ac.nsbm.onvent.model.dto.SignupRequest;
 import ac.nsbm.onvent.model.dto.UserProfileDTO;
 import ac.nsbm.onvent.model.entity.Role;
 import ac.nsbm.onvent.model.entity.User;
+import ac.nsbm.onvent.model.entity.Role;
 import ac.nsbm.onvent.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -49,13 +50,14 @@ public class UserService {
         // Validate password strength
         validatePassword(signupRequest.getPassword());
 
-        // Create new user using builder pattern
+        // Create new user using builder
         User user = User.builder()
                 .username(signupRequest.getUsername())
                 .name(signupRequest.getName())
                 .email(signupRequest.getEmail())
                 .password(passwordEncoder.encode(signupRequest.getPassword()))
-                .role(signupRequest.getRole() != null ? signupRequest.getRole() : Role.USER)
+                .role(signupRequest.getRole() != null ? signupRequest.getRole() : 
+                      (userRepository.count() == 0 ? Role.ADMIN : Role.USER)) // First user becomes admin
                 .build();
 
         return userRepository.save(user);

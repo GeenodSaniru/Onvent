@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { useLocation } from 'react-router-dom';
 
 const UserLogin = () => {
   const [credentials, setCredentials] = useState({
@@ -11,6 +12,7 @@ const UserLogin = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleChange = (e) => {
     setCredentials({
@@ -34,6 +36,11 @@ const UserLogin = () => {
         localStorage.setItem('userRole', response.data.role);
         setMessage('Login successful! Redirecting...');
         
+        // Create a custom event to notify other components of login
+        window.dispatchEvent(new CustomEvent('authStateChange', { 
+          detail: { isLoggedIn: true, userRole: response.data.role } 
+        }));
+        
         // Redirect based on user role
         setTimeout(() => {
           if (response.data.role === 'ADMIN') {
@@ -48,6 +55,11 @@ const UserLogin = () => {
       // Ensure we're marked as logged out on login failure
       localStorage.setItem('isLoggedIn', 'false');
       localStorage.removeItem('userRole');
+      
+      // Create a custom event to notify other components of login failure
+      window.dispatchEvent(new CustomEvent('authStateChange', { 
+        detail: { isLoggedIn: false, userRole: null } 
+      }));
     } finally {
       setIsLoading(false);
     }

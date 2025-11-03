@@ -30,6 +30,21 @@ class UserService {
   deleteUser(id) {
     return api.delete(`/users/delete/${id}`);
   }
+
+  // Get current user profile
+  getCurrentUser() {
+    return api.get('/api/auth/me');
+  }
+
+  // Update user profile
+  updateProfile(profileData) {
+    return api.put('/api/users/profile', profileData);
+  }
+
+  // Update user password
+  updatePassword(passwordData) {
+    return api.put('/api/users/password', passwordData);
+  }
 }
 
 export default new UserService();
