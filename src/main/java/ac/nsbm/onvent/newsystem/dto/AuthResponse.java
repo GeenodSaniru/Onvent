@@ -1,6 +1,6 @@
 package ac.nsbm.onvent.newsystem.dto;
 
-import ac.nsbm.onvent.newsystem.entity.User;
+import ac.nsbm.onvent.newsystem.entity.Role;
 import lombok.Builder;
 import lombok.Data;
 
@@ -11,6 +11,6 @@ public class AuthResponse {
     private String username;
     private String name;
     private String email;
-    private User.Role role;
+    private Role role;
     private String message;
 }

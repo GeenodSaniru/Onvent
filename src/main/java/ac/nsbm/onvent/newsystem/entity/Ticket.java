@@ -23,15 +23,21 @@ public class Ticket {
     @JoinColumn(name = "event_id", nullable = false)
     private Event event;
     
-    @Column(nullable = false)
-    private Integer quantity;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ticket_type_id")
+    private TicketType ticketType;
     
-    @Column(name = "total_price", nullable = false)
-    private Double totalPrice;
+    @Column(name = "ticket_code", nullable = false)
+    private String ticketCode;
     
-    @Column(name = "booking_date", nullable = false)
-    private LocalDateTime bookingDate;
+    @Column(name = "purchase_date", nullable = false)
+    private LocalDateTime purchaseDate;
     
     @Column(nullable = false)
     private String status;
+    
+    // Enum for ticket status
+    public enum TicketStatus {
+        ACTIVE, CANCELLED
+    }
 }

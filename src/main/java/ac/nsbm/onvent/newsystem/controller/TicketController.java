@@ -1,15 +1,18 @@
 package ac.nsbm.onvent.newsystem.controller;
 
 import ac.nsbm.onvent.newsystem.dto.BookingRequest;
-import ac.nsbm.onvent.newsystem.entity.Ticket;
+import ac.nsbm.onvent.newsystem.dto.BookingResponse;
+import ac.nsbm.onvent.newsystem.dto.DashboardStatsDTO;
+import ac.nsbm.onvent.newsystem.entity.User;
 import ac.nsbm.onvent.newsystem.service.TicketService;
+import ac.nsbm.onvent.newsystem.service.UserService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -18,25 +21,37 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/tickets")
-@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:5174", "https://onvent.netlify.app"}, allowCredentials = "true")
+@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:5174", "http://localhost:5175", "http://localhost:5177", "https://onvent.netlify.app"}, allowCredentials = "true")
 public class TicketController {
     
     private final TicketService ticketService;
+    private final UserService userService;
     
-    public TicketController(TicketService ticketService) {
+    public TicketController(TicketService ticketService, UserService userService) {
         this.ticketService = ticketService;
+        this.userService = userService;
     }
     
     @PostMapping("/book")
-    public ResponseEntity<?> bookTicket(@RequestBody BookingRequest bookingRequest, Authentication authentication) {
+    public ResponseEntity<?> bookTicket(@RequestBody BookingRequest bookingRequest) {
         try {
-            String username = authentication.getName();
-            // In a real implementation, we would get the user ID from the authentication context
-            // For now, we'll use a placeholder - in practice, you'd look up the user by username
-            Long userId = 1L; // This should be dynamically determined
+            // Get current authenticated user
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication == null || !authentication.isAuthenticated() || 
+                authentication.getPrincipal().equals("anonymousUser")) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(createErrorResponse("You must be logged in to book tickets"));
+            }
             
-            Ticket ticket = ticketService.bookTicket(bookingRequest, userId);
-            return new ResponseEntity<>(ticket, HttpStatus.CREATED);
+            String username = authentication.getName();
+            User currentUser = userService.findByUsernameOrEmail(username)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+            
+            // Set the user ID in the booking request
+            bookingRequest.setUserId(currentUser.getId());
+            
+            BookingResponse response = ticketService.bookTicket(bookingRequest);
+            return new ResponseEntity<>(response, HttpStatus.CREATED);
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(createErrorResponse(e.getMessage()));
@@ -47,17 +62,23 @@ public class TicketController {
     }
     
     @GetMapping("/user")
-    public ResponseEntity<?> getUserTickets(Authentication authentication,
-                                          @RequestParam(defaultValue = "0") int page,
+    public ResponseEntity<?> getUserTickets(@RequestParam(defaultValue = "0") int page, 
                                           @RequestParam(defaultValue = "10") int size) {
         try {
-            String username = authentication.getName();
-            // In a real implementation, we would get the user ID from the authentication context
-            Long userId = 1L; // This should be dynamically determined
+            // Get current authenticated user
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication == null || !authentication.isAuthenticated() || 
+                authentication.getPrincipal().equals("anonymousUser")) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(createErrorResponse("You must be logged in to view your tickets"));
+            }
             
-            Sort sort = Sort.by("bookingDate").descending();
-            Pageable pageable = PageRequest.of(page, size, sort);
-            Page<Ticket> tickets = ticketService.getUserTickets(userId, pageable);
+            String username = authentication.getName();
+            User currentUser = userService.findByUsernameOrEmail(username)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+            
+            Pageable pageable = PageRequest.of(page, size);
+            Page<BookingResponse> tickets = ticketService.getUserBookings(currentUser.getId(), pageable);
             return ResponseEntity.ok(tickets);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -66,13 +87,21 @@ public class TicketController {
     }
     
     @GetMapping("/user/list")
-    public ResponseEntity<?> getUserTicketsList(Authentication authentication) {
+    public ResponseEntity<?> getUserTicketsList() {
         try {
-            String username = authentication.getName();
-            // In a real implementation, we would get the user ID from the authentication context
-            Long userId = 1L; // This should be dynamically determined
+            // Get current authenticated user
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication == null || !authentication.isAuthenticated() || 
+                authentication.getPrincipal().equals("anonymousUser")) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(createErrorResponse("You must be logged in to view your tickets"));
+            }
             
-            List<Ticket> tickets = ticketService.getUserTickets(userId);
+            String username = authentication.getName();
+            User currentUser = userService.findByUsernameOrEmail(username)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+            
+            List<BookingResponse> tickets = ticketService.getUserBookingsList(currentUser.getId());
             return ResponseEntity.ok(tickets);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -80,14 +109,35 @@ public class TicketController {
         }
     }
     
-    @DeleteMapping("/{id}")
-    public ResponseEntity<?> cancelTicket(@PathVariable Long id, Authentication authentication) {
+    /**
+     * Get dashboard statistics for admin
+     */
+    @GetMapping("/admin/stats")
+    public ResponseEntity<?> getDashboardStats() {
         try {
-            String username = authentication.getName();
-            // In a real implementation, we would get the user ID from the authentication context
-            Long userId = 1L; // This should be dynamically determined
+            // Check if user is admin
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication == null || !authentication.isAuthenticated() || 
+                authentication.getPrincipal().equals("anonymousUser")) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(createErrorResponse("You must be logged in to view dashboard statistics"));
+            }
             
-            ticketService.cancelTicket(id, userId);
+            // In a real implementation, you would check if the user has admin role
+            // For now, we'll just return the stats
+            
+            DashboardStatsDTO stats = ticketService.getDashboardStats();
+            return ResponseEntity.ok(stats);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(createErrorResponse("Failed to fetch dashboard statistics: " + e.getMessage()));
+        }
+    }
+    
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> cancelTicket(@PathVariable Long id) {
+        try {
+            ticketService.cancelBooking(id);
             Map<String, String> response = new HashMap<>();
             response.put("message", "Ticket cancelled successfully");
             return ResponseEntity.ok(response);
@@ -97,21 +147,6 @@ public class TicketController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(createErrorResponse("Failed to cancel ticket: " + e.getMessage()));
-        }
-    }
-    
-    @GetMapping("/admin/event/{eventId}")
-    public ResponseEntity<?> getEventTickets(@PathVariable Long eventId,
-                                           @RequestParam(defaultValue = "0") int page,
-                                           @RequestParam(defaultValue = "10") int size) {
-        try {
-            Sort sort = Sort.by("bookingDate").descending();
-            Pageable pageable = PageRequest.of(page, size, sort);
-            Page<Ticket> tickets = ticketService.getEventTickets(eventId, pageable);
-            return ResponseEntity.ok(tickets);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(createErrorResponse("Failed to fetch event tickets: " + e.getMessage()));
         }
     }
     

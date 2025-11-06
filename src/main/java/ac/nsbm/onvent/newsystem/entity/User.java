@@ -2,6 +2,7 @@ package ac.nsbm.onvent.newsystem.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import java.util.List;
 
 @Entity
 @Table(name = "users")
@@ -30,7 +31,6 @@ public class User {
     @Column(nullable = false)
     private Role role;
     
-    public enum Role {
-        USER, ADMIN
-    }
+    @OneToMany(mappedBy = "organizer", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Event> organizedEvents;
 }

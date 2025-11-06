@@ -17,8 +17,11 @@ const Register = () => {
     setError('')
     setSuccess('')
     
+    // Remove confirmPassword from data sent to backend
+    const { confirmPassword, ...userData } = data
+    
     try {
-      const response = await authService.register(data)
+      const response = await authService.register(userData)
       
       if (response) {
         setSuccess('Registration successful! You can now log in.')
@@ -28,7 +31,11 @@ const Register = () => {
         }, 2000)
       }
     } catch (err) {
-      setError(err.response?.data?.error || 'Registration failed. Please try again.')
+      console.error('Registration error:', err)
+      const errorMessage = err.response?.data?.error || 
+                          err.response?.data?.message || 
+                          'Registration failed. Please check your inputs and try again.'
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -160,7 +167,7 @@ const Register = () => {
                     message: 'Password must be at least 8 characters'
                   },
                   pattern: {
-                    value: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
+                    value: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).*$/,
                     message: 'Password must contain at least one uppercase letter, one lowercase letter, and one digit'
                   }
                 })}

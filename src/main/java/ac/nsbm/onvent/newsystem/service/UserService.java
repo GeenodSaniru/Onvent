@@ -2,6 +2,7 @@ package ac.nsbm.onvent.newsystem.service;
 
 import ac.nsbm.onvent.newsystem.dto.AuthResponse;
 import ac.nsbm.onvent.newsystem.dto.SignupRequest;
+import ac.nsbm.onvent.newsystem.entity.Role;
 import ac.nsbm.onvent.newsystem.entity.User;
 import ac.nsbm.onvent.newsystem.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -22,29 +23,51 @@ public class UserService {
     
     @Transactional
     public User registerUser(SignupRequest signupRequest) {
-        // Check if username already exists
-        if (userRepository.existsByUsername(signupRequest.getUsername())) {
-            throw new RuntimeException("Username is already taken");
+        try {
+            // Check if username already exists
+            if (userRepository.existsByUsername(signupRequest.getUsername())) {
+                throw new RuntimeException("Username is already taken");
+            }
+            
+            // Check if email already exists
+            if (userRepository.existsByEmail(signupRequest.getEmail())) {
+                throw new RuntimeException("Email is already in use");
+            }
+            
+            // Validate password strength
+            validatePassword(signupRequest.getPassword());
+            
+            // Create new user
+            User user = User.builder()
+                    .username(signupRequest.getUsername())
+                    .name(signupRequest.getName())
+                    .email(signupRequest.getEmail())
+                    .password(passwordEncoder.encode(signupRequest.getPassword()))
+                    .role(userRepository.count() == 0 ? Role.ADMIN : Role.USER) // First user becomes admin
+                    .build();
+                    
+            return userRepository.save(user);
+        } catch (Exception e) {
+            // Log the exception for debugging
+            System.err.println("Error during user registration: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
         }
-        
-        // Check if email already exists
-        if (userRepository.existsByEmail(signupRequest.getEmail())) {
-            throw new RuntimeException("Email is already in use");
+    }
+    
+    private void validatePassword(String password) {
+        if (password == null || password.length() < 8) {
+            throw new RuntimeException("Password must be at least 8 characters long");
         }
-        
-        // Validate password strength
-        validatePassword(signupRequest.getPassword());
-        
-        // Create new user
-        User user = User.builder()
-                .username(signupRequest.getUsername())
-                .name(signupRequest.getName())
-                .email(signupRequest.getEmail())
-                .password(passwordEncoder.encode(signupRequest.getPassword()))
-                .role(userRepository.count() == 0 ? User.Role.ADMIN : User.Role.USER) // First user becomes admin
-                .build();
-                
-        return userRepository.save(user);
+        if (!password.matches(".*[A-Z].*")) {
+            throw new RuntimeException("Password must contain at least one uppercase letter");
+        }
+        if (!password.matches(".*[a-z].*")) {
+            throw new RuntimeException("Password must contain at least one lowercase letter");
+        }
+        if (!password.matches(".*\\d.*")) {
+            throw new RuntimeException("Password must contain at least one digit");
+        }
     }
     
     public Optional<User> findByUsernameOrEmail(String usernameOrEmail) {
@@ -60,20 +83,5 @@ public class UserService {
                 .role(user.getRole())
                 .message(message)
                 .build();
-    }
-    
-    private void validatePassword(String password) {
-        if (password.length() < 8) {
-            throw new RuntimeException("Password must be at least 8 characters long");
-        }
-        if (!password.matches(".*[A-Z].*")) {
-            throw new RuntimeException("Password must contain at least one uppercase letter");
-        }
-        if (!password.matches(".*[a-z].*")) {
-            throw new RuntimeException("Password must contain at least one lowercase letter");
-        }
-        if (!password.matches(".*\\d.*")) {
-            throw new RuntimeException("Password must contain at least one digit");
-        }
     }
 }

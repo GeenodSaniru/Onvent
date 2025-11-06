@@ -52,17 +52,34 @@ class AuthService {
     localStorage.removeItem('userRole');
   }
 
+  // Get CSRF token
+  async getCsrfToken() {
+    try {
+      const response = await api.get('/v1/auth/csrf');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching CSRF token:', error);
+      return null;
+    }
+  }
+
   // Login user
   async login(credentials) {
     try {
-      const response = await api.post('/api/v1/auth/login', credentials);
+      // Get CSRF token before login
+      await this.getCsrfToken();
+      
+      const response = await api.post('/v1/auth/login', credentials);
       if (response.data) {
         this.setAuthData(response.data);
         return response.data;
       }
       throw new Error('Login failed');
     } catch (error) {
-      this.clearAuthData();
+      // Only clear auth data on explicit authentication failures (401/403)
+      if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+        this.clearAuthData();
+      }
       throw error;
     }
   }
@@ -70,9 +87,14 @@ class AuthService {
   // Register user
   async register(userData) {
     try {
-      const response = await api.post('/api/v1/auth/signup', userData);
+      // Get CSRF token before registration
+      await this.getCsrfToken();
+      
+      const response = await api.post('/v1/auth/signup', userData);
       return response.data;
     } catch (error) {
+      console.error('Registration error:', error);
+      // Throw the entire error so the calling component can access more details
       throw error;
     }
   }
@@ -80,7 +102,7 @@ class AuthService {
   // Logout user
   async logout() {
     try {
-      await api.post('/api/v1/auth/logout');
+      await api.post('/v1/auth/logout');
     } catch (error) {
       console.error('Error during logout:', error);
     } finally {
@@ -91,7 +113,7 @@ class AuthService {
   // Get current user
   async getCurrentUser() {
     try {
-      const response = await api.get('/api/v1/auth/me');
+      const response = await api.get('/v1/auth/me');
       if (response.data) {
         this.setAuthData(response.data);
         return response.data;

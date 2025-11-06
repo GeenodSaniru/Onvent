@@ -22,17 +22,20 @@ const AdminDashboard = () => {
   const loadDashboardData = async () => {
     try {
       setLoading(true)
+      
+      // Load dashboard statistics
+      const statsData = await ticketService.getDashboardStats()
+      
       // Load events
       const eventsData = await eventService.getEvents(0, 5)
-      setEvents(eventsData.content || [])
       
-      // Calculate stats (in a real app, this would come from an API)
-      const totalEvents = eventsData.totalElements || 0
       setStats({
-        totalEvents,
-        totalTickets: 0, // Would be fetched from API
-        totalRevenue: 0  // Would be fetched from API
+        totalEvents: statsData.totalEvents || 0,
+        totalTickets: statsData.totalTickets || 0,
+        totalRevenue: statsData.totalRevenue || 0
       })
+      
+      setEvents(eventsData.content || [])
     } catch (err) {
       setError('Failed to load dashboard data')
       console.error('Error loading dashboard:', err)
