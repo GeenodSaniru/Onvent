@@ -50,6 +50,16 @@ class TicketService {
       throw error;
     }
   }
+  
+  // Get dashboard statistics (admin only)
+  async getDashboardStats() {
+    try {
+      const response = await api.get('/v1/tickets/admin/stats');
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  }
 }
 
 export default new TicketService()

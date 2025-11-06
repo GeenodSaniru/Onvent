@@ -9,6 +9,8 @@ import EventList from './pages/EventList'
 import EventDetails from './pages/EventDetails'
 import UserDashboard from './pages/UserDashboard'
 import AdminDashboard from './pages/AdminDashboard'
+import CreateEvent from './pages/CreateEvent'
+import EditEvent from './pages/EditEvent'
 import BookingForm from './pages/BookingForm'
 import ProtectedRoute from './components/ProtectedRoute'
 import './App.css'
@@ -33,6 +35,16 @@ function App() {
           <Route path="/admin/dashboard" element={
             <ProtectedRoute role="ADMIN">
               <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/events/create" element={
+            <ProtectedRoute role="ADMIN">
+              <CreateEvent />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/events/:id/edit" element={
+            <ProtectedRoute role="ADMIN">
+              <EditEvent />
             </ProtectedRoute>
           } />
         </Routes>

@@ -15,27 +15,31 @@ public class Event {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    @Column(nullable = false)
+    @Column(name = "title", nullable = false)
     private String title;
     
-    @Column(length = 1000)
+    @Column(name = "description", length = 1000)
     private String description;
     
-    @Column(nullable = false)
+    @Column(name = "location", nullable = false)
     private String location;
     
     @Column(name = "date", nullable = false)
     private LocalDateTime date;
     
-    @Column(nullable = false)
+    @Column(name = "category")
     private String category;
     
-    @Column(nullable = false)
+    @Column(name = "price", nullable = false)
     private Double price;
     
-    @Column(name = "seats", nullable = false)
+    @Column(name = "seats")
     private Integer seats;
     
     @Column(name = "image")
     private String image;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "organizer_id", nullable = false)
+    private User organizer;
 }

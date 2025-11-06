@@ -21,7 +21,7 @@ const UserDashboard = () => {
       setLoading(true)
       const data = await ticketService.getUserTicketsList()
       // Sort tickets by booking date (newest first)
-      const sortedTickets = data.sort((a, b) => new Date(b.bookingDate) - new Date(a.bookingDate))
+      const sortedTickets = data.sort((a, b) => new Date(b.purchaseDate) - new Date(a.purchaseDate))
       setTickets(sortedTickets)
     } catch (err) {
       setError('Failed to load your tickets')
@@ -40,7 +40,7 @@ const UserDashboard = () => {
       setCancelingTicket(ticketId)
       await ticketService.cancelTicket(ticketId)
       // Remove cancelled ticket from the list
-      setTickets(tickets.filter(ticket => ticket.id !== ticketId))
+      setTickets(tickets.filter(ticket => ticket.ticketId !== ticketId))
     } catch (err) {
       alert(err.response?.data?.error || 'Failed to cancel ticket')
     } finally {
@@ -101,12 +101,12 @@ const UserDashboard = () => {
           ) : (
             <div className="ticket-list">
               {tickets.map((ticket) => (
-                <div key={ticket.id} className="ticket-item">
+                <div key={ticket.ticketId} className="ticket-item">
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <div className="flex items-center">
                         <h3 className="text-lg font-bold text-gray-900">
-                          {ticket.event?.title || 'Event Title'}
+                          {ticket.eventTitle || 'Event Title'}
                         </h3>
                         <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                           {ticket.status}
@@ -115,31 +115,34 @@ const UserDashboard = () => {
                       <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
                         <div className="flex items-center text-sm text-gray-500">
                           <FaCalendarAlt className="mr-2" />
-                          {ticket.event?.date ? formatDate(ticket.event.date) : 'Event Date'}
+                          {ticket.eventDate ? formatDate(ticket.eventDate) : 'Event Date'}
                         </div>
                         <div className="flex items-center text-sm text-gray-500">
                           <FaMapMarkerAlt className="mr-2" />
-                          {ticket.event?.venue || 'Event Venue'}
+                          {ticket.eventLocation || 'Event Venue'}
                         </div>
                         <div className="flex items-center text-sm text-gray-500">
                           <FaChair className="mr-2" />
-                          {ticket.quantity} ticket{ticket.quantity > 1 ? 's' : ''}
+                          1 ticket
                         </div>
                         <div className="flex items-center text-sm text-gray-500">
                           <FaTicketAlt className="mr-2" />
-                          Total: ${ticket.totalPrice?.toFixed(2)}
+                          Total: ${ticket.eventPrice?.toFixed(2)}
                         </div>
                       </div>
                       <div className="mt-2 text-sm text-gray-500">
-                        Booked on: {formatDate(ticket.bookingDate)}
+                        Booked on: {formatDate(ticket.purchaseDate)}
+                      </div>
+                      <div className="mt-1 text-sm text-gray-500">
+                        Ticket Code: {ticket.ticketCode}
                       </div>
                     </div>
                     <button
-                      onClick={() => handleCancelTicket(ticket.id)}
-                      disabled={cancelingTicket === ticket.id}
+                      onClick={() => handleCancelTicket(ticket.ticketId)}
+                      disabled={cancelingTicket === ticket.ticketId}
                       className="ml-4 inline-flex items-center p-2 border border-transparent rounded-full text-red-700 hover:bg-red-100 focus:outline-none"
                     >
-                      {cancelingTicket === ticket.id ? (
+                      {cancelingTicket === ticket.ticketId ? (
                         <div className="loading-spinner w-4 h-4"></div>
                       ) : (
                         <FaTimes className="h-5 w-5" />

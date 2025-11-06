@@ -41,7 +41,7 @@ const BookingForm = () => {
     try {
       const bookingData = {
         eventId: parseInt(eventId),
-        quantity: parseInt(data.quantity)
+        numberOfTickets: parseInt(data.quantity)
       }
       
       const response = await ticketService.bookTicket(bookingData)
