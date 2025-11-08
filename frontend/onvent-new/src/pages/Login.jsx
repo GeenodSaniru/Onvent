@@ -63,7 +63,7 @@ const Login = () => {
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FaUser className="text-gray-400" />
+                <FaUser className="text-gray-400 h-5 w-5" />
               </div>
               <input
                 id="usernameOrEmail"
@@ -71,7 +71,7 @@ const Login = () => {
                 {...register('usernameOrEmail', { 
                   required: 'Email or username is required' 
                 })}
-                className="form-input pl-10"
+                className="form-input-with-icon"
                 placeholder="Enter your email or username"
               />
             </div>
@@ -88,7 +88,7 @@ const Login = () => {
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FaLock className="text-gray-400" />
+                <FaLock className="text-gray-400 h-5 w-5" />
               </div>
               <input
                 id="password"
@@ -100,7 +100,7 @@ const Login = () => {
                     message: 'Password must be at least 8 characters'
                   }
                 })}
-                className="form-input pl-10"
+                className="form-input-with-icon"
                 placeholder="Enter your password"
               />
             </div>

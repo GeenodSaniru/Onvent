@@ -93,7 +93,7 @@ const Register = () => {
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FaUser className="text-gray-400" />
+                <FaUser className="text-gray-400 h-5 w-5" />
               </div>
               <input
                 id="username"
@@ -109,7 +109,7 @@ const Register = () => {
                     message: 'Username must be less than 20 characters'
                   }
                 })}
-                className="form-input pl-10"
+                className="form-input-with-icon"
                 placeholder="Choose a username"
               />
             </div>
@@ -126,7 +126,7 @@ const Register = () => {
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FaEnvelope className="text-gray-400" />
+                <FaEnvelope className="text-gray-400 h-5 w-5" />
               </div>
               <input
                 id="email"
@@ -138,7 +138,7 @@ const Register = () => {
                     message: 'Invalid email address'
                   }
                 })}
-                className="form-input pl-10"
+                className="form-input-with-icon"
                 placeholder="Enter your email"
               />
             </div>
@@ -155,7 +155,7 @@ const Register = () => {
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FaLock className="text-gray-400" />
+                <FaLock className="text-gray-400 h-5 w-5" />
               </div>
               <input
                 id="password"
@@ -171,7 +171,7 @@ const Register = () => {
                     message: 'Password must contain at least one uppercase letter, one lowercase letter, and one digit'
                   }
                 })}
-                className="form-input pl-10"
+                className="form-input-with-icon"
                 placeholder="Create a password"
               />
             </div>
@@ -188,7 +188,7 @@ const Register = () => {
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FaLock className="text-gray-400" />
+                <FaLock className="text-gray-400 h-5 w-5" />
               </div>
               <input
                 id="confirmPassword"
@@ -198,7 +198,7 @@ const Register = () => {
                   validate: value => 
                     value === password || 'Passwords do not match'
                 })}
-                className="form-input pl-10"
+                className="form-input-with-icon"
                 placeholder="Confirm your password"
               />
             </div>
