@@ -134,6 +134,58 @@ public class TicketController {
         }
     }
     
+    /**
+     * Get event-specific booking statistics for admin
+     */
+    @GetMapping("/admin/event/{eventId}/stats")
+    public ResponseEntity<?> getEventBookingStats(@PathVariable Long eventId) {
+        try {
+            // Check if user is admin
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication == null || !authentication.isAuthenticated() || 
+                authentication.getPrincipal().equals("anonymousUser")) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(createErrorResponse("You must be logged in to view event statistics"));
+            }
+            
+            // Get event booking statistics
+            Map<String, Object> stats = ticketService.getEventBookingStats(eventId);
+            return ResponseEntity.ok(stats);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(createErrorResponse(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(createErrorResponse("Failed to fetch event statistics: " + e.getMessage()));
+        }
+    }
+    
+    /**
+     * Get event-specific booking statistics for all authenticated users
+     */
+    @GetMapping("/event/{eventId}/stats")
+    public ResponseEntity<?> getEventBookingStatsForUsers(@PathVariable Long eventId) {
+        try {
+            // Check if user is authenticated
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication == null || !authentication.isAuthenticated() || 
+                authentication.getPrincipal().equals("anonymousUser")) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(createErrorResponse("You must be logged in to view event statistics"));
+            }
+            
+            // Get event booking statistics
+            Map<String, Object> stats = ticketService.getEventBookingStats(eventId);
+            return ResponseEntity.ok(stats);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(createErrorResponse(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(createErrorResponse("Failed to fetch event statistics: " + e.getMessage()));
+        }
+    }
+    
     @DeleteMapping("/{id}")
     public ResponseEntity<?> cancelTicket(@PathVariable Long id) {
         try {

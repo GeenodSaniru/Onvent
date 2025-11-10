@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import eventService from '../services/eventService'
 import authService from '../services/authService'
-import { FaCalendarAlt, FaMapMarkerAlt, FaTicketAlt, FaChair, FaUser } from 'react-icons/fa'
+import { FaCalendarAlt, FaMapMarkerAlt, FaTicketAlt, FaChair, FaUser, FaEdit, FaTrash } from 'react-icons/fa'
 
 const EventDetails = () => {
   const { id } = useParams()
@@ -11,6 +11,7 @@ const EventDetails = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const isAuthenticated = authService.isAuthenticated()
+  const isAdmin = authService.hasRole('ADMIN')
 
   useEffect(() => {
     loadEvent()
@@ -26,6 +27,20 @@ const EventDetails = () => {
       console.error('Error loading event:', err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleDeleteEvent = async () => {
+    if (!window.confirm('Are you sure you want to delete this event? This action cannot be undone.')) {
+      return
+    }
+    
+    try {
+      await eventService.deleteEvent(id)
+      // Redirect to events list or admin dashboard after successful deletion
+      navigate('/admin/dashboard')
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to delete event')
     }
   }
 
@@ -109,13 +124,33 @@ const EventDetails = () => {
               <div className="text-3xl font-bold text-primary mb-2">
                 ${event.price?.toFixed(2)}
               </div>
-              <button
-                onClick={handleBookTickets}
-                className="btn-primary"
-              >
-                <FaTicketAlt className="mr-2" />
-                Book Tickets
-              </button>
+              <div className="flex flex-col space-y-2">
+                <button
+                  onClick={handleBookTickets}
+                  className="btn-primary"
+                >
+                  <FaTicketAlt className="mr-2" />
+                  Book Tickets
+                </button>
+                {isAdmin && (
+                  <div className="flex space-x-2 mt-2">
+                    <Link
+                      to={`/admin/events/${event.id}/edit`}
+                      className="flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+                    >
+                      <FaEdit className="mr-1" />
+                      Edit
+                    </Link>
+                    <button
+                      onClick={handleDeleteEvent}
+                      className="flex items-center px-3 py-2 border border-red-300 rounded-md text-sm font-medium text-red-700 hover:bg-red-50"
+                    >
+                      <FaTrash className="mr-1" />
+                      Delete
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
           

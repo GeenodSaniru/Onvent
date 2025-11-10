@@ -3,6 +3,7 @@ package ac.nsbm.onvent.newsystem.service;
 import ac.nsbm.onvent.newsystem.dto.EventDTO;
 import ac.nsbm.onvent.newsystem.entity.Event;
 import ac.nsbm.onvent.newsystem.entity.User;
+import ac.nsbm.onvent.newsystem.entity.Role;
 import ac.nsbm.onvent.newsystem.repository.EventRepository;
 import ac.nsbm.onvent.newsystem.repository.UserRepository;
 import jakarta.transaction.Transactional;
@@ -10,6 +11,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -69,9 +72,18 @@ private EventRepository eventRepository;
         Event existingEvent = eventRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Event not found with id: " + id));
 
-        // Check if the current user is the organizer of the event
+        // Check if the current user is the organizer of the event or an admin
         if (!existingEvent.getOrganizer().getUsername().equals(organizerUsername)) {
-            throw new RuntimeException("You are not authorized to update this event");
+            // Get current user to check if they are admin
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String currentUsername = authentication.getName();
+            User currentUser = userRepository.findByUsername(currentUsername)
+                    .orElseThrow(() -> new RuntimeException("Current user not found"));
+            
+            // Allow admin to update any event
+            if (currentUser.getRole() != Role.ADMIN) {
+                throw new RuntimeException("You are not authorized to update this event");
+            }
         }
 
         // Update event details
@@ -93,9 +105,18 @@ private EventRepository eventRepository;
         Event existingEvent = eventRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Event not found with id: " + id));
 
-        // Check if the current user is the organizer of the event
+        // Check if the current user is the organizer of the event or an admin
         if (!existingEvent.getOrganizer().getUsername().equals(organizerUsername)) {
-            throw new RuntimeException("You are not authorized to delete this event");
+            // Get current user to check if they are admin
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String currentUsername = authentication.getName();
+            User currentUser = userRepository.findByUsername(currentUsername)
+                    .orElseThrow(() -> new RuntimeException("Current user not found"));
+            
+            // Allow admin to delete any event
+            if (currentUser.getRole() != Role.ADMIN) {
+                throw new RuntimeException("You are not authorized to delete this event");
+            }
         }
 
         eventRepository.deleteById(id);

@@ -51,6 +51,26 @@ class TicketService {
     }
   }
   
+  // Get event booking statistics (admin only)
+  async getEventBookingStats(eventId) {
+    try {
+      const response = await api.get(`/v1/tickets/admin/event/${eventId}/stats`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  }
+  
+  // Get event booking statistics for all authenticated users
+  async getEventBookingStatsForUsers(eventId) {
+    try {
+      const response = await api.get(`/v1/tickets/event/${eventId}/stats`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  }
+  
   // Get dashboard statistics (admin only)
   async getDashboardStats() {
     try {

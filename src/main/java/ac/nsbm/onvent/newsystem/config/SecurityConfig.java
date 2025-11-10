@@ -88,8 +88,9 @@ public class SecurityConfig {
                 // Ticket endpoints - Users can book, ADMIN can view all
                 .requestMatchers(HttpMethod.POST, "/api/v1/tickets/**").hasAnyRole("USER", "ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/v1/tickets/user/**").hasAnyRole("USER", "ADMIN")
-                .requestMatchers(HttpMethod.DELETE, "/api/v1/tickets/**").hasAnyRole("USER", "ADMIN")
+                .requestMatchers(HttpMethod.GET, "/api/v1/tickets/event/**").hasAnyRole("USER", "ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/v1/tickets/admin/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/v1/tickets/**").hasAnyRole("USER", "ADMIN")
                 
                 // All other requests require authentication
                 .anyRequest().authenticated()

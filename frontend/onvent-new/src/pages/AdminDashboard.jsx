@@ -6,6 +6,7 @@ import { FaCalendarAlt, FaTicketAlt, FaUsers, FaPlus, FaEdit, FaTrash } from 're
 
 const AdminDashboard = () => {
   const [events, setEvents] = useState([])
+  const [eventStats, setEventStats] = useState({}) // New state for event statistics
   const [stats, setStats] = useState({
     totalEvents: 0,
     totalTickets: 0,
@@ -35,12 +36,57 @@ const AdminDashboard = () => {
         totalRevenue: statsData.totalRevenue || 0
       })
       
-      setEvents(eventsData.content || [])
+      // Fix: Use eventsData directly instead of eventsData.content
+      const eventsList = Array.isArray(eventsData) ? eventsData : (eventsData.content || [])
+      setEvents(eventsList)
+      
+      // Load event statistics for each event
+      if (eventsList.length > 0) {
+        loadEventStats(eventsList)
+      }
     } catch (err) {
       setError('Failed to load dashboard data')
       console.error('Error loading dashboard:', err)
     } finally {
       setLoading(false)
+    }
+  }
+  
+  // Load booking statistics for each event
+  const loadEventStats = async (eventsList) => {
+    try {
+      const stats = {}
+      for (const event of eventsList) {
+        try {
+          // Try the user endpoint first
+          const eventStat = await ticketService.getEventBookingStatsForUsers(event.id)
+          stats[event.id] = eventStat
+        } catch (err) {
+          console.error(`Error loading stats for event ${event.id}:`, err)
+          // Check if it's a permission error (403)
+          if (err.response && err.response.status === 403) {
+            // Set a flag to indicate admin access is required
+            stats[event.id] = {
+              error: 'Admin access required',
+              totalSeats: event.seats || 0,
+              bookedSeats: 0,
+              availableSeats: event.seats || 0,
+              bookingPercentage: 0
+            }
+          } else {
+            // Set default values if stats can't be loaded for other reasons
+            stats[event.id] = {
+              totalSeats: event.seats || 0,
+              bookedSeats: 0,
+              availableSeats: event.seats || 0,
+              bookingPercentage: 0
+            }
+          }
+        }
+      }
+      setEventStats(stats)
+    } catch (err) {
+      console.error('Error loading event statistics:', err)
     }
   }
 
@@ -66,6 +112,13 @@ const AdminDashboard = () => {
       month: 'short',
       day: 'numeric'
     })
+  }
+  
+  // Function to get progress bar color based on booking percentage
+  const getProgressBarColor = (percentage) => {
+    if (percentage >= 90) return 'bg-red-500'
+    if (percentage >= 75) return 'bg-yellow-500'
+    return 'bg-green-500'
   }
 
   return (
@@ -126,7 +179,7 @@ const AdminDashboard = () => {
             </div>
             <Link
               to="/admin/events/create"
-              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-blue-700"
+              className="btn-primary"
             >
               <FaPlus className="mr-2" />
               Create Event
@@ -178,7 +231,7 @@ const AdminDashboard = () => {
                       Price
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Seats
+                      Booking Stats
                     </th>
                     <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Actions
@@ -186,43 +239,76 @@ const AdminDashboard = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {events.map((event) => (
-                    <tr key={event.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">{event.title}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-500">
-                          {event.date ? formatDate(event.date) : 'N/A'}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                          {event.category || 'N/A'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        ${event.price?.toFixed(2) || 'N/A'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {event.seats || 0}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <Link
-                          to={`/admin/events/${event.id}/edit`}
-                          className="text-primary hover:text-blue-900 mr-3"
-                        >
-                          <FaEdit />
-                        </Link>
-                        <button
-                          onClick={() => handleDeleteEvent(event.id)}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          <FaTrash />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                  {events.map((event) => {
+                    const stats = eventStats[event.id] || {
+                      totalSeats: event.seats || 0,
+                      bookedSeats: 0,
+                      availableSeats: event.seats || 0,
+                      bookingPercentage: 0
+                    }
+                    
+                    return (
+                      <tr key={event.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">{event.title}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-500">
+                            {event.date ? formatDate(event.date) : 'N/A'}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            {event.category || 'N/A'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          ${event.price?.toFixed(2) || 'N/A'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div className="w-full">
+                              {stats.error ? (
+                                <div className="text-xs text-gray-500 italic">
+                                  {stats.error}
+                                </div>
+                              ) : (
+                                <>
+                                  <div className="flex justify-between text-sm text-gray-500 mb-1">
+                                    <span>{stats.bookedSeats} booked</span>
+                                    <span>{stats.availableSeats} available</span>
+                                  </div>
+                                  <div className="w-full bg-gray-200 rounded-full h-2">
+                                    <div 
+                                      className={`h-2 rounded-full ${getProgressBarColor(stats.bookingPercentage)}`}
+                                      style={{ width: `${stats.bookingPercentage}%` }}
+                                    ></div>
+                                  </div>
+                                  <div className="text-xs text-gray-500 mt-1">
+                                    {Math.round(stats.bookingPercentage)}% booked
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <Link
+                            to={`/admin/events/${event.id}/edit`}
+                            className="text-primary hover:text-blue-900 mr-3"
+                          >
+                            <FaEdit />
+                          </Link>
+                          <button
+                            onClick={() => handleDeleteEvent(event.id)}
+                            className="text-red-600 hover:text-red-900"
+                          >
+                            <FaTrash />
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>

@@ -23,7 +23,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -196,6 +198,38 @@ public class TicketService {
                 .sum();
         
         return new DashboardStatsDTO(totalEvents, totalTickets, totalRevenue);
+    }
+    
+    /**
+     * Get event-specific booking statistics
+     */
+    public Map<String, Object> getEventBookingStats(Long eventId) {
+        // Fetch event
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found with ID: " + eventId));
+        
+        // Get total seats for this event
+        int totalSeats = event.getSeats();
+        
+        // Get booked seats count
+        Long bookedSeats = ticketRepository.countActiveTicketsByEventId(eventId);
+        
+        // Calculate available seats
+        int availableSeats = totalSeats - bookedSeats.intValue();
+        
+        // Calculate booking percentage
+        double bookingPercentage = totalSeats > 0 ? (bookedSeats.doubleValue() / totalSeats) * 100 : 0;
+        
+        // Create response map
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("eventId", eventId);
+        stats.put("eventTitle", event.getTitle());
+        stats.put("totalSeats", totalSeats);
+        stats.put("bookedSeats", bookedSeats.intValue());
+        stats.put("availableSeats", availableSeats);
+        stats.put("bookingPercentage", bookingPercentage);
+        
+        return stats;
     }
     
     /**
