@@ -27,14 +27,22 @@ public class Event {
     @Column(name = "date", nullable = false)
     private LocalDateTime date;
     
+    // Temporary fix for schema inconsistency - map both date and event_date columns
+    @Column(name = "event_date")
+    private LocalDateTime eventDate;
+    
     @Column(name = "category")
     private String category;
     
     @Column(name = "price", nullable = false)
     private Double price;
     
+    // Handle both seats and max_attendees columns
     @Column(name = "seats")
     private Integer seats;
+    
+    @Column(name = "max_attendees")
+    private Integer maxAttendees;
     
     @Column(name = "image")
     private String image;
@@ -42,4 +50,23 @@ public class Event {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "organizer_id", nullable = false)
     private User organizer;
+    
+    // Ensure both date and seats fields are synchronized
+    @PrePersist
+    @PreUpdate
+    public void syncFields() {
+        // Sync date fields
+        if (this.date != null) {
+            this.eventDate = this.date;
+        } else if (this.eventDate != null) {
+            this.date = this.eventDate;
+        }
+        
+        // Sync seats fields
+        if (this.seats != null) {
+            this.maxAttendees = this.seats;
+        } else if (this.maxAttendees != null) {
+            this.seats = this.maxAttendees;
+        }
+    }
 }
